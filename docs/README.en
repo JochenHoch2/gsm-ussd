@@ -1,0 +1,75 @@
+README
+======
+
+This is the README file for gsm-ussd. Thanks for your interest in this
+script!
+
+* What is gsm-ussd?
+
+gsm-ussd is a script to send USSD (Unstructured Supplementary
+Services Data) queries to your broadband provider.
+
+* What's a USSD query?
+
+Perhaps the best-known USSD query is "*100#": If you're using a
+prepaid SIM, calling this "number" will result in a display of your
+current account. Depending on your GSM provider, there are a lot 
+more USSD queries available, but be aware that codes differ between
+providers! That's why it's called "Unstructured": Every provider
+can use the number range "*1...#" as they please.
+
+* What can I do with USSD queries?
+
+Just about everything that you can do with USSD queries from your mobile
+phone:
+- Query your account, if you're using a prepaid SIM card
+- Replenish your account
+- Show your current telephone number
+- and a lot more, limited only by your net provider's imagination
+  (and documentation B^)
+
+* And why do I need gsm-ussd for that?
+
+I know of no other tool to send USSD queries, at least not
+for a Huawei E160 UMTS stick. The software helpfully supplied on the
+stick itself is windows-only. The highly capable umtsmon software can't
+do this as far as I can see, but honestly I have difficulties checking
+because 32 bit umtsmon doesn't play nice with my 64 bit Linux
+distribution. knetworkmanager handles the modem flawlessly but can't do
+USSD queries either.
+
+Even if there already is a tool, chances are that it won't work with my
+E160.  as it needs its USSD queries encoded in network fashion. Other,
+more capable, modems take USSD queries in clear text and handle encoding
+in firmware.
+
+Well, of course I could always disassemble my UMTS stick, remove the SIM
+card, put it in my mobile, do what I need and then reverse the whole
+procedure.  But... Naaaah.... B^)
+
+* So how do I use it?
+
+Well, take a look at the script's inline documentation:
+
+	$ perldoc gsm-ussd
+
+But it's easy, really - at least if you know your modem's AT port. This
+means the device file that you use to talk to your modem. As in the case
+of the E160, this might be more than one. USB devices have device files
+named /dev/ttyUSB0, /dev/ttyUSB1 and so on. The E160 uses /dev/ttyUSB0
+as a data port (where data flows if you're connected) and /dev/ttyUSB1
+as the AT port, where you can talk to the modem and read state messages.
+
+So, if your (or at least your modem's) AT port is /dev/ttyUSB1, just
+call
+
+	$ gsm-ussd
+
+because that's the default. If your modem's using /dev/ttyUSB2 as its 
+AT port, just call
+
+	$ gsm-ussd --modem /dev/ttyUSB2
+
+Other possible AT ports might be /dev/rfcomm0 if your UMTS modem is
+connected via Bluetooth. A lot of cell phones behave like modems if you tether
+then to your laptop by bluetooth.

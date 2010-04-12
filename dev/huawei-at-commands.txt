@@ -1,0 +1,267 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2006-2008  Vodafone España, S.A.
+# Copyright (C) 2008-2009  Warp Networks, S.L.
+# Author:  Pablo Martí
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+"""
+Common stuff for all Huawei cards
+"""
+
+import re
+
+from twisted.python import log
+
+from wader.common.middleware import WCDMAWrapper
+from wader.common.command import get_cmd_dict_copy, OK_REGEXP, ERROR_REGEXP
+from wader.common.consts import BAND_OPTS_REV, CONN_OPTS, CONN_OPTS_REV
+from wader.common.hardware.base import WCDMACustomizer
+from wader.common.netspeed import bps_to_human
+from wader.common.plugin import DevicePlugin
+from wader.common.sim import SIMBaseClass
+from wader.common.utils import rssi_to_percentage
+import wader.common.signals as S
+import wader.common.aterrors as E
+
+NETINFO_REGEXP = re.compile('[^a-zA-Z0-9.\-\s]*')
+BADOPER_REGEXP = re.compile('FFF*')
+
+HUAWEI_CONN_DICT = {
+    'ANY'    : 'AT^SYSCFG=2,0,3FFFFFFF,2,4',
+    '2GONLY' : 'AT^SYSCFG=13,1,3FFFFFFF,2,4',
+    '3GONLY' : 'AT^SYSCFG=14,2,3FFFFFFF,2,4',
+    '2GPREF' : 'AT^SYSCFG=2,1,3FFFFFFF,2,4',
+    '3GPREF' : 'AT^SYSCFG=2,2,3FFFFFFF,2,4',
+}
+
+HUAWEI_BAND_DICT = {
+    0 : '3FFFFFFF',   # any band
+    1 : '00000100',   # EGSM (900MHz)
+    2 : '00000080',   # DCS (1800MHz)
+    4 : '00200000',   # PCS (1900MHz)
+    8 : '00080000',   # GSM (850 MHz)
+   16 : '00400000',   # WCDMA 2100Mhz  (Class I)
+}
+
+def huawei_new_conn_mode(args):
+    """Translates C{arg} to Wader's internal representation"""
+    mode_args_dict = {
+        '0,0' : S.NO_SIGNAL,
+        '0,2' : S.NO_SIGNAL,
+        '3,0' : S.GPRS_SIGNAL,
+        '3,1' : S.GPRS_SIGNAL,
+        '3,2' : S.GPRS_SIGNAL,
+        '3,3' : S.GPRS_SIGNAL,
+        '5,4' : S.UMTS_SIGNAL,
+        '5,5' : S.HSDPA_SIGNAL,
+        '5,6' : S.HSUPA_SIGNAL,
+        '5,7' : S.HSPA_SIGNAL,
+    }
+    return mode_args_dict[args]
+
+def huawei_new_speed_link(args):
+    converted_args = map(lambda hexstr: int(hexstr, 16), args.split(','))
+    time, tx, rx, tx_flow, rx_flow, tx_rate, rx_rate = converted_args
+    return bps_to_human(tx * 8, rx * 8)
+
+HUAWEI_CMD_DICT = get_cmd_dict_copy()
+get_syscfg = dict(end=OK_REGEXP,
+                  error=ERROR_REGEXP,
+                  extract=re.compile(r"""
+                                     \r\n
+                                     \^SYSCFG:
+                                     (?P<mode>\d),
+                                     (?P<acqorder>\d),
+                                     (?P<band>[0-9a-fA-F]*),
+                                     (?P<roam>\d),
+                                     (?P<srvdomain>\d)
+                                     \r\n
+                                     """, re.VERBOSE))
+
+get_radio_status = dict(end=re.compile('\r\n\+CFUN:\s?\d\r\n'),
+                        error=ERROR_REGEXP,
+                        extract=re.compile('\r\n\+CFUN:\s?(?P<status>\d)\r\n')
+)
+HUAWEI_CMD_DICT['get_radio_status'] = get_radio_status
+HUAWEI_CMD_DICT['get_syscfg'] = get_syscfg
+
+
+class HuaweiWCDMACustomizer(WCDMACustomizer):
+    """
+    Base Customizer class for Huawei cards
+    """
+    async_regexp = re.compile('\r\n(?P<signal>\^[A-Z]{3,9}):(?P<args>.*)\r\n')
+    band_dict = HUAWEI_BAND_DICT
+    conn_dict = HUAWEI_CONN_DICT
+    cmd_dict = HUAWEI_CMD_DICT
+    device_capabilities = [S.SIG_NETWORK_MODE,
+                           S.SIG_RSSI,
+                           S.SIG_SPEED]
+
+    signal_translations = {
+        '^MODE' : (S.SIG_NETWORK_MODE, huawei_new_conn_mode),
+        '^RSSI' : (S.SIG_RSSI, lambda rssi: rssi_to_percentage(int(rssi))),
+        '^DSFLOWRPT' : (S.SIG_SPEED, huawei_new_speed_link),
+        '^BOOT' : (None, None),
+        '^SRVST' : (None, None),
+        '^SIMST' : (None, None),
+        '^CEND' : (None, None),
+    }
+
+
+class HuaweiEXXXWrapper(WCDMAWrapper):
+    """
+    Wrapper for all Huawei E2XX cards
+    """
+
+    def _get_syscfg(self, callback):
+        d = self.send_at('AT^SYSCFG?', name='get_syscfg',
+                         callback=callback)
+        return d
+
+    def get_band(self):
+        """
+        Returns the current used band
+        """
+        def process_band_cb(resp):
+            band = int(resp[0].group('band'), 16)
+            ret = 0
+            for k in HUAWEI_BAND_DICT:
+                val = int(HUAWEI_BAND_DICT[k], 16)
+                if band & val:
+                    ret |= BAND_OPTS_REV[k]
+
+            return ret
+
+        d = self._get_syscfg(process_band_cb)
+        d.addErrback(log.err)
+        return d
+
+    def get_network_info(self):
+        def process_netinfo_cb(info):
+            operator, tech = info
+            m = BADOPER_REGEXP.match(operator)
+            # sometimes the operator will come as a FFFFFFF+
+            if m:
+                return "Unknown Network", tech
+
+            # clean extra '@', 'x1a', etc
+            return NETINFO_REGEXP.sub('', operator), tech
+
+        d = super(HuaweiEXXXWrapper, self).get_network_info()
+        d.addCallback(process_netinfo_cb)
+        return d
+
+    def get_network_mode(self):
+        """
+        Returns the current used network mode
+        """
+        def process_netmode_cb(resp):
+            mode = int(resp[0].group('mode'))
+            acqorder = int(resp[0].group('acqorder'))
+
+            for k in HUAWEI_CONN_DICT:
+                at_str = HUAWEI_CONN_DICT[k].split('=')[1]
+                try:
+                    _mode, _acqorder = map(int, at_str.split(',')[:2])
+                except:
+                    log.err()
+
+                if mode == _mode and acqorder == _acqorder:
+                    return CONN_OPTS_REV[k]
+
+            msg = "Could not find the at_str for mode %d and acqorder %d"
+            raise RuntimeError(msg % (mode, acqorder))
+
+        d = self._get_syscfg(process_netmode_cb)
+        d.addErrback(log.err)
+        return d
+
+    def set_band(self, band):
+        """
+        Sets the band to C{band}
+        """
+        ret = 0
+        for k in reversed(sorted(HUAWEI_BAND_DICT.keys())):
+            if k & band:
+                band -= k
+                band_str = HUAWEI_BAND_DICT[k]
+                ret |= int(band_str, 16)
+
+        if not ret:
+            band_str = "%s" % HUAWEI_BAND_DICT[0] # ANY
+        else:
+            band_str = "%s" % hex(ret).replace('0x', '')
+
+        return self.send_at('AT^SYSCFG=16,3,%s,2,4' % band_str)
+
+    def set_network_mode(self, mode):
+        """
+        Sets the network mode to C{mode}
+        """
+        if mode not in CONN_OPTS:
+            raise ValueError("Unknown mode %d for set_network_mode" % mode)
+
+        mode_name = CONN_OPTS[mode]
+        if mode_name not in HUAWEI_CONN_DICT:
+            raise ValueError("Unknown mode %d for set_network_mode" % mode)
+
+        return self.send_at(HUAWEI_CONN_DICT[mode_name])
+
+    def set_smsc(self, smsc):
+        """
+        Sets the SIM's smsc to C{smsc}
+
+        We wrap the operation with set_charset('IRA') and set_charset('UCS2')
+        """
+        d = self.set_charset('IRA')
+        d.addCallback(lambda _: super(HuaweiEXXXWrapper, self).set_smsc(smsc))
+        d.addCallback(lambda _: self.set_charset('UCS2'))
+        return d
+
+
+class HuaweiSIMClass(SIMBaseClass):
+    """Huawei SIM Class"""
+    def __init__(self, sconn):
+        super(HuaweiSIMClass, self).__init__(sconn)
+
+    def initialize(self, set_encoding=True):
+        def at_curc_eb(failure):
+            failure.trap(E.ATError)
+
+        d = super(HuaweiSIMClass, self).initialize(set_encoding=set_encoding)
+        def init_cb(size):
+            # enable unsolicited control commands
+            d = self.sconn.send_at('AT^CURC=1')
+            d.addErrback(at_curc_eb)
+
+            self.sconn.send_at('AT+COPS=3,0')
+            return size
+
+        d.addCallback(init_cb)
+        return d
+
+
+class HuaweiEXXXCustomizer(HuaweiWCDMACustomizer):
+    """
+    Customizer for all Huawei EXXX cards
+    """
+    wrapper = HuaweiEXXXWrapper
+
+
+class HuaweiWCDMADevicePlugin(DevicePlugin):
+    """DevicePlugin for Huawei"""
+    simklass = HuaweiSIMClass
+    custom = HuaweiEXXXCustomizer()

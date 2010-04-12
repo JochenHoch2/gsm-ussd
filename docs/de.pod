@@ -1,0 +1,155 @@
+=encoding utf8
+
+=head1 NAME
+
+gsm-ussd
+
+=head1 SYNOPSYS
+
+ gsm-ussd --help|-h|-?
+ gsm-ussd [-m <modem>] [-t <timeout>] [-p <pin>] [-d] [-l <logfile>] [<ussd-cmd>]
+
+=head1 DESCRIPTION
+
+Das Skript schickt an einen Port, hinter dem ein GSM-Modem sitzen
+sollte, ein USSD-Kommando und wartet auf die Antwort, die dann bei
+Eintreffen ausgegeben wird. 
+
+=head1 OPTIONS
+
+=over
+
+=item B<< --modem|-m <modem> >>
+
+Erwartet das Modem an der übergebenen Schnittstelle. Default
+ist C</dev/ttyUSB1>.
+
+Bitte beachten: Wenn man ein UMTS-Modem wie ein Huawei E160 ansteckt,
+erhält man - je nach Modell - B<mehrere> serielle USB-Interfaces, im
+Falle des E160 sind es beispielsweise zwei! 
+Über C</dev/ttyUSB0> wird der Datenverkehr geführt,
+Zustandsmeldungen und Kommandos laufen über C</dev/ttyUSB1>.
+
+=item B<< --timeout|-t <timeout_in_secs> >>
+
+Der Timeout in Sekunden, den das Skript pro Anfrage an das Modem
+auf eine Antwort wartet. Per Default sind dies B<20> Sekunden.
+
+=item B<< --pin|-p <PIN> >>
+
+Die SIM PIN, falls die Karte noch gesperrt sein sollte. Dies 
+ist typischerweise direkt nach dem Einstecken des UMTS-Sticks
+der Fall. B<Achtung>: Die SIM PIN wird während der Laufzeit des
+Skripts in der Prozessliste sichtbar - auf einem Multiuser-
+System mit Bedacht verwenden! B<Nochmals Achtung>: Wenn Sie eine
+Shell mit Command Line History verwenden, wird das Kommando inkl.
+PIN dort eine Weile lang im Klartext gespeichert!
+
+=item B<--cleartext|-c>
+
+Schaltet auf Klartextversand des USSD-Kommandos um, d.h. ohne die
+USSD-Kommandos in 7Bit gepackte Hexstrings zu konvertieren, wie es
+für die E160-Serie von Huawei notwendig ist. Diese Option
+hat Vorrang vor der aus dem Modemtyp ermittelten Reaktion.
+
+=item B<--no-cleartext>
+
+Dies ist die Negation der vorhergehenden Option: Schaltet auf
+kodierten Versand des USSD-Kommandos um, auch wenn die Modemerkennung
+dies nicht als notwendig erkennt. Diese Option
+hat Vorrang vor der aus dem Modemtyp ermittelten Reaktion.
+
+=item B<--help|-h|-?>
+
+Gibt die Online-Hilfe aus.
+
+=back
+
+Die folgenden Optionen sind nicht für den Alltagsgebrauch gedacht,
+sondern als Entwicklungshilfen oder für pathologisch Neugierige.
+In Bezug auf die PIN gilt wieder, dass beide Optionen die PIN im Klartext
+ausgeben, wenn Sie die Option C<< --pin <PIN> >> verwenden, also auch
+wieder mit Bedacht verwenden!
+
+=over
+
+=item B<< --logfile|-l <logfilename> >>
+
+Schreibt den Dialog mit dem Modem, den das Skript führt, in das Logfile
+fort. Dies ist grundsätzlich eher eine Debugging-Hilfe als eine
+Alltagsoption.
+
+=item B<--debug|-d>
+
+Schaltet den Debug-Modus ein. Das Skript gibt dann sehr ausführlich
+darüber Auskunft, was es gerade macht und welches Ergebnis die
+jeweilige Aktion liefert.
+
+=back
+
+=head1 ARGUMENTS
+
+Ein USSD-Kommando ist eine Ziffernfolge, die das GSM-Netz zu tollen
+Dingen veranlasst. Per Default wird das Kommando C<*100#> gesendet,
+welches alle mir bekannten Netze dazu veranlasst, den Guthabenstand
+des Prepaid-Kontos zu melden.
+
+Bitte beachten: Grundsätzlich sind die USSD-Codes für jeden Anbieter
+unterschiedlich! 
+
+Liste der interessanten Dinge:
+
+=over
+
+=item * B<*100#>
+
+Bei bisher allen mir bekannten Prepaid-Anbietern funktionierender
+USSD-Code zur Guthabenabfrage auf der Karte. B<Default>, wenn kein
+USSD-Code beim Aufruf mitgegeben wird. Alle weiteren Codes sind, auch
+wenn es zwischen den Providern gelegentlich Überschneidungen
+gibt, grundsätzlich B<nicht> portabel!
+
+=item * Telecom/D1
+
+=over
+
+=item * B<< *101*I<cashcode># >>
+
+Aufladen einer Prepaid-Karte bei Telecom D1/Congstar. Beim Cashcode
+bitte beachten, dass etwaige Minuszeichen zur Zifferngruppierung des
+länglichen Codes nicht mit einzugeben sind!
+
+=item * B<*135#>
+
+Anzeige der eigenen Telefonnummer.
+
+=back
+
+=item * Vodafone/D2
+
+=over
+
+=item B<*102#>
+
+Ausgabe der Kosten der letzten Verbindung.
+
+=back
+
+=item * E-Plus & Reseller
+
+=over
+
+=item * B<*104*I<cashcode>#>
+
+Aufladen einer Prepaid-Karte bei E-Plus und Resellern (Medion/Alditalk,
+Simyo, Blue, ...). Beim Cashcode bitte beachten, dass etwaige
+Minuszeichen zur Zifferngruppierung des länglichen Codes nicht mit
+einzugeben sind!
+
+=back
+
+=back 
+
+=head1 AUTHOR
+
+Jochen Gruse, L<mailto:jochen@zum-quadrat.de>

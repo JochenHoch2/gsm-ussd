@@ -1,0 +1,11 @@
+# Auszug aus picosession.txt
+^BOOT
++CREG
+^DSFLOWRPT
+^MODE
+^RSSI
+^SIMST
+^SRVST
+# Von Hand hinzugefügt
++CME ERROR
++CMS ERROR

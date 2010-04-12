@@ -1,0 +1,158 @@
+=encoding utf8
+
+=head1 NAME
+
+gsm-ussd
+
+=head1 SYNOPSYS
+
+ gsm-ussd --help|-h|-?
+ gsm-ussd [-m <modem>] [-t <timeout>] [-p <pin>] [-d] [-l <logfile>] [<ussd-cmd>]
+
+=head1 DESCRIPTION
+
+This script sends a USSD query to a modem, waits for the answer
+and displays it. The modem type is detected and any necessary
+en-/decoding and error checking is done. 
+
+=head1 OPTIONS
+
+=over
+
+=item B<< --modem|-m <modem> >>
+
+Sets the device file to use to connect to the modem. Default is
+C</dev/ttyUSB1>.
+
+Please note: Depending on your modem's make and model, you might get
+B<more than one> serial USB interfaces when connecting the modem! 
+For example, the Huawei E160 gets two: C</dev/ttyUSB0> and 
+C</dev/ttyUSB1>. The first is for data, commands and state messages
+use the second port. 
+
+=item B<< --timeout|-t <timeout_in_secs> >>
+
+The timeout in seconds that the script will wait for an answer after
+each command sent to the modem.
+Default is B<20> seconds.
+
+=item B<< --pin|-p <PIN> >>
+
+The SIM PIN, if the card ist still locked. This is typically 
+the case just after the modem got stuck into your computer.
+B<Attention>: The SIM PIN can be seen in the process list as
+long as the script is running - use with care on multi user 
+systems! B<Attention again>: If you are using a shell with a 
+command line history, your SIM PIN will be stored there for a
+while in clear.
+
+=item B<--cleartext|-c>
+
+This option causes gsm-ussd to send USSD queries in cleartext, i.e.
+without encoding them into a 7bit-packed-hex-string, as is needed
+for Huaweis E160* series of UMTS modems. This takes precedence before
+any detected modem type. 
+
+=item B<--no-cleartext>
+
+This is the opposite of the previous option: Use encoding, even if the
+modem type does not indicate that it is needed. This (obviously) takes
+precedence before any detected modem type.
+
+=item B<--help|-h|-?>
+
+Shows the online help.
+
+=back
+
+The following options aren't meant for everyday usage, bus as
+diagnostic aids in development or for the pathologically curious.
+Please be reminded again that any logs or debugging output will
+show your PIN if you're using option C<< --pin <PIN> >>! So use
+with care.
+
+=over
+
+=item B<< --logfile|-l <logfilename> >>
+
+Writes the chat between modem and script into the named log file.
+Useful to look for unexpected modem answers (or expected modem 
+answers that nevertheless weren't handled correctly). 
+Clearly more a debugging help than anything else.
+
+=item B<--debug|-d>
+
+Switches debug mode on. The script will then explain its actions 
+and their results in high detail. 
+
+=back
+
+=head1 ARGUMENTS
+
+A USSD query is a "phone number" starting with "*1" and ending with 
+"#" which let's you do interesting things in a GSM network.
+By default, if you don't specify any USSD query, C<*100#> will be
+used, which causes all GSM network providers known to me to provide
+the balance of your prepaid account.
+
+Please note: USSD queries are different for each provider!
+
+List of interesting things:
+
+=over
+
+=item * B<*100#>
+
+This works with all GSM network providers that I know of (which,
+admittedly, doesn't say much). Shows your prepaid account balance.
+B<Default>, if no other USSD query is given on the command line.
+Basically, USSD queries are B<not> portable between networks, but this
+one seems to be a convention every network adheres to. 
+
+=item * German Telecom/D1
+
+=over
+
+=item * B<< *101*I<cashcode># >>
+
+Replenish your prepaid account with a "Cashcode". Please note that a
+cash code consists only of numbers! Dashes in your cash code are simply
+used for readability, don't enter them. Use only the numbers.
+
+=item * B<*135#>
+
+Displays your own phone number.
+
+=back
+
+=item * Vodafone/D2
+
+=over
+
+=item B<*102#>
+
+Displays costs of your last connection.
+
+=back
+
+=item * E-Plus & Resellers
+
+=over
+
+=item * B<*104*I<cashcode>#>
+
+Replenish your prepaid account with a "Cashcode". Please note that a
+cash code consists only of numbers! Dashes in your cash code are simply
+used for readability, don't enter them. Use only the numbers.
+
+This works for the E-Plus net, not only for the E-Plus provider. So you
+can use this USSD query for E-Plus resellers (AldiTalk, Simyo, Blue, ...)
+too.
+
+=back
+
+=back 
+
+=head1 AUTHOR
+
+Jochen Gruse, L<mailto:jochen@zum-quadrat.de>
