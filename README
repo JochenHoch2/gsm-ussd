@@ -1,14 +1,28 @@
+
 Hi there!
-The information you are looking for are available in "docs/README.en"
-(or whereever vour distribution chose to drop this file into,
-probably somewhere like "/usr/share/doc/gsm-ussd*" or the like).
-If you prefer German, there's also a "README.de"-file.  Have fun!
+
+The information you are looking for is available in "docs/README.en"
+(or whereever your distribution chose to drop this file, probably
+somewhere like "/usr/share/doc/gsm-ussd*" or the like).
+
+If you prefer German, there's also a "README.de"-file.
+
+Have fun!
+
+------------------------------------------------------------------------
 
 Hallo!
-Die Informationen, nach denen Sie suchen, finden Sie in der Datei
-"docs/README.de" (oder wo auch immer Ihre Distribution die Datei
-hat hinfallen lassen, wahrscheinlich irgendwo unter "/usr/share/docs/gsm-ussd*"
-oder so).  Sollten Sie Englisch bevorzugen, so finden Sie dort
-auch die Datei "README.en".  Viel Spaß!
 
-Jochen Gruse
+Die Informationen, nach denen Sie suchen, finden Sie in der Datei
+"docs/README.de" (oder wo auch immer Ihre Distribution die Datei hat
+hinfallen lassen, wahrscheinlich irgendwo unter
+"/usr/share/docs/gsm-ussd*" oder so).
+
+Sollten Sie Englisch bevorzugen, so finden Sie dort auch die Datei
+"README.en".
+
+Viel Spaß!
+
+------------------------------------------------------------------------
+
+Jochen Gruse, jochen@zum-quadrat.de
