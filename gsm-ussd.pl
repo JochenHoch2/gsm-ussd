@@ -27,7 +27,6 @@ use 5.008;                  # Encode::GSM0338 only vailable since 5.8
 use Getopt::Long;
 use Pod::Usage;
 use Expect;
-use Log::Log4perl qw(:easy);
 use Encode qw(encode decode);
 
 
@@ -69,14 +68,6 @@ if ( $show_online_help ) {
 # Further arguments are USSD queries
 if ( @ARGV != 0 ) {
     $ussd_query = $ARGV[0];
-}
-
-# Debug mode
-if ($debug) {
-    Log::Log4perl->easy_init($DEBUG);
-}
-else {
-    Log::Log4perl->easy_init($INFO);
 }
 
 # The Expect programs differ in the way they react to modem answers
@@ -140,7 +131,7 @@ my %expect_programs = (
                 my $exp = shift;
                 my $match = $exp->match();
                 $match =~ s/(?:^\s+|\s+$)//g;
-                DEBUG ("Expacted answer: ", $match);
+                DEBUG ("Expected answer: ", $match);
             }
         ],
         # AT command (TTY echo of input)
@@ -204,7 +195,7 @@ if ( ! defined $modem_model ) {
 }
 if ( ! defined $use_cleartext ) {
     if ( $modem_model !~ /^E160/ ) {
-        WARN ("Modem is not a Huawei E160, switching to cleartext");
+        DEBUG ("Modem is not a Huawei E160, switching to cleartext");
         $use_cleartext = 1;
     }
     else {
@@ -307,7 +298,7 @@ sub check_for_modem {
         return 1;
     }
     else {
-        WARN ("No modem found, error: $result->{description}");
+        DEBUG ("No modem found, error: $result->{description}");
         return 0;
     }
 }
@@ -327,7 +318,7 @@ sub get_modem_model {
         return $result->{description};
     }
     else {
-        WARN ("No modem type found: ", $result->{description});
+        DEBUG ("No modem type found: ", $result->{description});
         return undef;
     }
 }
@@ -353,7 +344,7 @@ sub pin_needed {
                 return 1;
             }
             else {
-                WARN ("Couldn't parse SIM state query result: " . $result->{description});
+                DEBUG ("Couldn't parse SIM state query result: " . $result->{description});
                 return 1;
             }
         }
@@ -363,7 +354,7 @@ sub pin_needed {
         }
     }
     else {
-        WARN (" SIM state query failed, error: " . $result->{description} );
+        DEBUG (" SIM state query failed, error: " . $result->{description} );
         return 1;
     }
 }
@@ -384,7 +375,7 @@ sub enter_pin {
         return 1;
     }
     else {
-        WARN ("SIM card still locked, error: ", $result->{description});
+        DEBUG ("SIM card still locked, error: ", $result->{description});
         return 0;
     }
 }
@@ -404,7 +395,7 @@ sub do_ussd_query {
         my ($val1,$hexstring,$encoding) = $result->{description} =~ m/(\d+),"([^"]+)",(\d+)/i;
         if ( ! defined $encoding ) {
             # Hat der RA nicht gepasst?
-            WARN ("Couldn't parse CUSD message: \"", $result->{description}, "\"");
+            DEBUG ("Couldn't parse CUSD message: \"", $result->{description}, "\"");
             return { ok => $fail, msg => "Couldn't understand modem answer: \"" . $result->{description} . "\"" };
         }
         elsif ( $encoding == 0 ) {
@@ -414,12 +405,12 @@ sub do_ussd_query {
             return { ok => $success, msg => decode_text( $hexstring ) };
         }
         else {
-            WARN ("CUSD message has unknown encoding \"$encoding\", using 0");
+            DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
             return { ok => $success, msg => hex_to_string ($hexstring) };
         }
     }
     else {
-        WARN ("USSD query failed, error: " . $result->{description});
+        DEBUG ("USSD query failed, error: " . $result->{description});
         return { ok => $fail, msg => $result->{description} };
     }
 }
@@ -527,7 +518,7 @@ sub network_error {
     my $exp = shift;
     my ($error_msg_type,$error_msg_value) = $exp->matchlist();
 
-    DEBUG "Network error $error_msg_type with data \"$error_msg_value\" detected.";
+    DEBUG ("Network error $error_msg_type with data \"$error_msg_value\" detected.");
 }
 
 ########################################################################
@@ -681,6 +672,13 @@ sub gsm_pack {
 	return repack_bits(7, 8, $_[0]);
 }
 
+########################################################################
+# Function: DEBUG
+sub DEBUG {
+    if ($debug) {
+        print STDERR '[DEBUG] ' . join(' ',@_) . $/ ;
+    }
+}
 
 ########################################################################
 __END__
