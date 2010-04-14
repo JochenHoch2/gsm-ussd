@@ -1,0 +1,70 @@
+Installation
+============
+
+Easy, really. B^)
+
+
+Tested platforms
+----------------
+
+Development of gsm-ussd was done on Kubuntu 9.10 and Kubuntu 10.04
+(Beta), but any moderately recent linux distribution is expected to
+work.
+
+The only UMTS modem this script was tested with was a "MEDIONmobile (R)
+web stick S4011", which is really only a relabeled Huawei E160 and
+which identifies as such.
+
+Any feedback on OSes and hardware you're running this script with is
+deeply appreciated! Please mail your successes and fails to
+"jochen@zum-quadrat.de". Thanks!
+
+
+Prerequisites for building:
+---------------------------
+
+*	Perl 5.8 and up
+	Older versions will do, too, but as you'll need Perl 5.8 for
+	actually _running_ gsm-ussd, there's no point in using less, is
+	there?
+
+As gsm-ussd is a perl script, you won't even need perl for merely
+installing it, but pod2man is needed for the creation of man pages.
+
+
+Prerequisites for running:
+--------------------------
+
+*	Perl 5.8 and up
+	Older versions miss the Encoding::GSM0338 module. 
+
+*	Perl module "Expect" installed
+	This module has other dependencies, which should be resolved
+	by your package management tool or cpan, whichever you prefer
+	for perl module installation.
+
+*	A connected and supported UMTS modem. B^)
+	This might as well be a tethered mobile phone which supports a 
+	modem like interface. But as you can send USSD queries directly
+	from the phone itself, this only makes sense if you want to
+	automate something.
+
+
+Installation:
+-------------
+
+Install Expect.pm:
+$ sudo aptitude install libexpect-perl		# (K)Ubuntu, Debian
+$ zypper install perl-Expect			# OpenSuSE (SLES?)
+$ yum install perl-Expect			# Fedora (RedHat?)
+
+Install gsm-ussd with manual pages:
+$ make all
+$ sudo make install install-doc
+
+This will install gsm-ussd and its documentation in /usr/local. If
+you want to install it in /usr, try
+
+$ sudo make install install-doc PREFIX=/usr 
+
+Happy USSD'ing!
