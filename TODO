@@ -1,0 +1,39 @@
+TODO
+====
+
+This is just a collection of ideas. Care to comment?
+
+* Translate CME/CMS ERRORs, so that you'll get 
+	"Network error: No network service" 
+  instead of
+	"Network error: 30"
+
+* Query +CMEE, set it to 1 to receive CMS/CME ERROR messages,
+  reset it to old value.
+
+* Instead of a fixed waiting time for the modem to find its net
+  after unlocking the SIM, poll it regularly until it reports 
+  that it has found its net.
+
+* A small GUI, built around tools like zenity, kdialog or xdialog,
+  maybe even kommander.
+
+
+NOT TO DO
+=========
+
+These are things I will not consider doing to my poor script:
+
+* Get it to run under Windows.
+  There's no shortage of tools for this on Windows; furthermore,
+  I have absolutely no experience talking to modems on Windows.
+  If someone wants to have a try: Substitute "COMx:" for
+  "/dev/ttyUSBx" and go from there.
+
+* Get it to send SMSes, set the modem clock, read phone book entries 
+  off the SIM, ...
+  All of that _can_ be done, of course, but there are already better
+  tools for that available.
+
+
+Jochen
