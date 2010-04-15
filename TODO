@@ -15,14 +15,28 @@ This is just a collection of ideas. Care to comment?
   after unlocking the SIM, poll it regularly until it reports 
   that it has found its net.
 
-* A small GUI, built around tools like zenity, kdialog or xdialog,
-  maybe even kommander.
+* A small GUI, built around tools like zenity, kdialog or xdialog
+  or even kommander.
+
+* Add another option "-v|--verbose", which will query and output
+  modem type, net the modem is logged into and other trivia.
+
+* Add support and Makefile targets for DEB and RPM packages for
+  an even easier installation.
+
+* Some kind of localisation?
+  I'd prefer to keep this little script as selfcontained as possible,
+  so I probably won't build some gettext()/.po-file infrastructure.
+  But as there are not _that_ many user visible messages, I can
+  imagine some internal support for English/German/French/Spanish
+  messages. Of course, the actual translation (apart from English
+  and German) would have to be done by someone else...
 
 
 NOT TO DO
 =========
 
-These are things I will not consider doing to my poor script:
+These are things I will *not* consider doing to my poor script:
 
 * Get it to run under Windows.
   There's no shortage of tools for this on Windows; furthermore,
@@ -33,7 +47,10 @@ These are things I will not consider doing to my poor script:
 * Get it to send SMSes, set the modem clock, read phone book entries 
   off the SIM, ...
   All of that _can_ be done, of course, but there are already better
-  tools for that available.
+  tools for that available. gsm-ussd is supposed to be a one trick
+  pony only! 
+
+Jochen Gruse
 
 
 Jochen
