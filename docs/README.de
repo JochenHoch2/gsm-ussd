@@ -3,73 +3,126 @@ LIESMICH
 
 Dies ist das LIESMICH zu gsm-ussd. Vielen Dank für Ihr Interesse!
 
+
 * Was ist gsm-ussd?
 
-gsm-ussd ist ein Skript, um USSD-Abfragen (Unstructured
-Supplementary Services Data) an ein Netz zu senden.
+    gsm-ussd ist ein Skript, um USSD-Abfragen (Unstructured
+    Supplementary Services Data) an ein Netz zu senden.
+
 
 * Was ist eine USSD-Abfrage?
 
-Das best-bekannte Beispiel dürfte die Abfrage "*100#" sein, um bei einer
-Prepaid-SIM-Karte den Kontostand in Erfahrung zu bringen. Je nach Netz-
-anbieter gibt es jede Menge weitere USSD-Codes, die aber leider unter
-den Netzanbietern nicht einheitlich verwendet werden. Aber deswegen
-steht das U in USSD ja auch für "unstructured": Im Nummernkreis
-"*1...#" darf jeder Netzanbieter nach eigenem Gutdünken walten.
+    Das best-bekannte Beispiel dürfte die Abfrage "*100#" sein, um bei einer
+    Prepaid-SIM-Karte den Kontostand in Erfahrung zu bringen. Je nach Netz-
+    anbieter gibt es jede Menge weitere USSD-Codes, die aber leider unter
+    den Netzanbietern nicht einheitlich verwendet werden. Aber deswegen
+    steht das U in USSD ja auch für "unstructured": Im Nummernkreis
+    "*1...#" darf jeder Netzanbieter nach eigenem Gutdünken walten.
+
 
 * Was kann man mit USSD-Abfragen machen?
 
-Was man mit USSD-Abfragen auch auf jedem Handy machen kann:
-- Den Guthabenstand der Prepaid-Karte abfragen
-- Das Konto wieder aufladen
-- Die eigene Telefonnummer anzeigen lassen
-- und vieles andere mehr, begrenzt nur von der Fantasie
-  des Netzanbieters. 
+    Was man mit USSD-Abfragen auch auf jedem Handy machen kann:
+    - Den Guthabenstand der Prepaid-Karte abfragen
+    - Das Konto wieder aufladen
+    - Die eigene Telefonnummer anzeigen lassen
+    - und vieles andere mehr, begrenzt nur von der Fantasie
+      des Netzanbieters. 
+
 
 * Und warum benötige ich dafür gsm-ussd?
 
-Weil keine mir bekannte Lösung existiert, diese Abfragen
-über einen Huawei E160 UMTS-Stick abzusetzen. Die mitgelieferte
-Software kann es, aber die ist nur für Windows. umtsmon scheint
-es auch nicht zu können, was ich aber nicht 100%ig feststellen
-konnte, da ich Schwierigkeiten hatte, umtsmon auf meinem 64bit-
-Kubuntu zum Laufen zu bekommen. Der knetworkmanager hat mit dem
-Modem keine Probleme, was den Verbindungsaufbau u.ä. betrifft,
-hat das Feature aber ebenfalls nicht.
+    Weil keine mir bekannte Lösung existiert, diese Abfragen
+    über einen Huawei E160 UMTS-Stick abzusetzen. Die mitgelieferte
+    Software kann es, aber die ist nur für Windows. umtsmon scheint
+    es auch nicht zu können, was ich aber nicht 100%ig feststellen
+    konnte, da ich Schwierigkeiten hatte, umtsmon auf meinem 64bit-
+    Kubuntu zum Laufen zu bekommen. Der knetworkmanager hat mit dem
+    Modem keine Probleme, was den Verbindungsaufbau u.ä. betrifft,
+    hat das Feature aber ebenfalls nicht.
 
-Selbst, wenn es aber auch schon ein Tool dazu gäbe, stünden die
-Chancen gut, dass es mit dem E160 nicht funktioniert, da es seine
-USSD-Abfragen in einem speziellen Format haben will. Andere, bessere
-Modems nehmen die Abfrage im Klartext entgegen und kümmern sich um
-das Kodieren/Dekodieren in der Firmware.
+    Selbst, wenn es aber auch schon ein Tool dazu gäbe, stünden die
+    Chancen gut, dass es mit dem E160 nicht funktioniert, da es seine
+    USSD-Abfragen in einem speziellen Format haben will. Andere, bessere
+    Modems nehmen die Abfrage im Klartext entgegen und kümmern sich um
+    das Kodieren/Dekodieren in der Firmware.
 
-Und jedesmal, wenn ich die Karte wieder aufladen will oder nur
-einen Überblick über den Guthabenstand haben will, diese ausbauen
-und in ein Handy transferieren? Aääähhhh... Nö. B^)
+    Und jedesmal, wenn ich die Karte wieder aufladen will oder nur
+    einen Überblick über den Guthabenstand haben will, diese ausbauen
+    und in ein Handy transferieren? Hmmmm..... Nö. B^)
+
 
 * Und wie benutze ich es jetzt?
 
-Nun, werfen Sie einen Blick in die ins Skript eingebaute Dokumentation:
+    Nun, werfen Sie zunächst einen Blick in die Datei INSTALL und folgen
+    Sie den (englischen) Anweisungen. Keine Angst, es ist alles recht 
+    einfach.
 
-	$ perldoc gsm-ussd
+    Dann schauen Sie in die Handbuchseite:
 
-Aber es ist wirklich einfach - zumindest, wenn man den AT-Port seines
-Modems kennt. Der AT-Port des Modems ist die Gerätedatei, über die man
-mit seinem Modem kommuniziert. Wie im Falle eines E160 kann das mehr
-als eine Gerätedatei sein. USB-Modems haben Gerätedateien in der Form
-/dev/ttyUSB0, /dev/ttyUSB1 usw. Das E160 verwendet /dev/ttyUSB0 als
-Datenport (über den die Daten laufen, wenn man verbunden ist) und 
-/dev/ttyUSB1 als AT-Port, über den man dem Modem Kommandos geben und
-Statusmeldungen des Modems lesen kann.
+        $ man gsm-ussd
 
-Wenn also der AT-Port Ihres Modems /dev/ttyUSB1 ist, brauchen Sie nur
+    Aber es ist wirklich einfach - zumindest, wenn man den AT-Port seines
+    Modems kennt. Der AT-Port des Modems ist die Gerätedatei, über die man
+    mit seinem Modem kommuniziert. Wie im Falle eines E160 kann das mehr
+    als eine Gerätedatei sein. USB-Modems haben Gerätedateien in der Form
+    /dev/ttyUSB0, /dev/ttyUSB1 usw. Das E160 verwendet /dev/ttyUSB0 als
+    Datenport (über den die Daten laufen, wenn man verbunden ist) und 
+    /dev/ttyUSB1 als AT-Port, über den man dem Modem Kommandos geben und
+    Statusmeldungen des Modems lesen kann.
 
-	$ gsm-ussd 
+    Wenn also der AT-Port Ihres Modems /dev/ttyUSB1 ist, brauchen Sie nur
 
-aufzurufen, weil das der Default ist. Wäre der AT-Port dagegen 
-/dev/ttyUSB2, müsste der Aufruf
+        $ gsm-ussd 
 
-	$ gsm-ussd --modem /dev/ttyUSB2
+    aufzurufen, weil das der Default ist. Wäre der AT-Port dagegen 
+    /dev/ttyUSB2, müsste der Aufruf
 
-lauten. Andere mögliche AT-Ports könnten /dev/rfcomm0 (Bluetooth) oder
-/dev/ttyS0 (serieller Port) sein.
+        $ gsm-ussd -m /dev/ttyUSB2
+
+    lauten. Andere mögliche AT-Ports könnten /dev/rfcomm0 (Bluetooth) oder
+    /dev/ttyS0 (serieller Port) sein.
+
+    Das eigentliche USSD-Kommando wird dann einfach als Argument
+    übergeben:
+
+        $ gsm-ussd -m /dev/ttyUSB1 '*135#'
+
+    Die USSD-Abfrage bitte immer in Hochkommata (') oder Anführungszeichen
+    (") einschließen, um die Shell davon abzuhalten, das Sternchen als
+    Sonderzeichen zu betrachten!
+
+
+* Bei mir klappt's aber nicht!
+
+    Das kann natürlich viele Ursachen haben: Unbekannte Hardware, kaputte
+    Hardware, unbekannte Linux-Distribution, schlechte Netzanbindung, 
+    natürlich auch Fehler im Skript...
+    Immer einen Versuch wert ist der Aufruf mit der Option "-d":
+
+        $ gsm-ussd -d
+
+    Zusätzlich zu allen weiteren notwendigen Option natürlich. Wer sehen
+    möchte, wie sich Skript und Modem unterhalten, verwendet die Option
+    "-l":
+
+        $ gsm-ussd -l my-ussd-logfile
+
+    In Kombination sollte man zumindest einen Hinweis darauf bekommen,
+    was im Skript schiefläuft.
+
+
+* Jetzt klappt es!
+
+    Prima! Schicken Sie mir eine Email mit Ihrer Erfolgsmeldung und
+    teilen Sie mir mit, welches Betriebssystem und welche UMTS Hardware
+    Sie verwendet haben! Ich möchte diese Informationen gerne auch anderen
+    auf meiner Website zugängig machen, http://linux.zum-quadrat.de.
+    Natürlich mit Attribution!
+
+    Und sollten Sie das Skript für sich persönlich angepasst haben, damit
+    es funktioniert - immer her damit! An Änderungen, Verbesserungen, Ideen,
+    Kritik habe ich immer Interesse. Senden Sie bitte alles an
+
+        Jochen Gruse, <jochen@zum-quadrat.de>
+
