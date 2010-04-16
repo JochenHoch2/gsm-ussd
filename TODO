@@ -32,6 +32,32 @@ This is just a collection of ideas. Care to comment?
   messages. Of course, the actual translation (apart from English
   and German) would have to be done by someone else...
 
+* Check the USSD query for legal characters first: /^\*[0-9*]+#$/
+
+* Some more research: Right now, I deal with USSD queries as 
+  "one shot" commands. I send a query, receive an answer and that's 
+  it. But my docs suggest that more is possible:
+
+	In case of enabled presentation, a +CUSD (as direct answer
+	to a send USSD) is then indicated with:
+	+CUSD: <m> [,<str>,<dcs> ]
+
+	<m>
+	0:	no further user action required (network initiated
+		USSD-Notify, or no further information needed after
+		mobile initiated operation)
+	1:	further user action required (network initiated
+		USSD-Request, or further information needed after
+		mobile initiated operation)
+	2:	USSD terminated by network
+	4:	Operation not supported
+	<str> is network string, converted in the selected character set
+	<dcs> is the data coding scheme received (GSM TS 03.38).
+
+  As stated above, I don't even check m for different values (which I
+  should). Is there anybody out there that knows what this is 
+  used for and how it's done?
+
 
 NOT TO DO
 =========
