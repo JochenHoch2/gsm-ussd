@@ -226,7 +226,7 @@ if ( pin_needed() ) {
     }
 }
 
-my $ussd_result = do_ussd_query();
+my $ussd_result = do_ussd_query ();
 if ( $ussd_result->{ok} ) {
     print $ussd_result->{msg}, $/;
 }
@@ -290,7 +290,7 @@ sub check_modemport {
 #           1   Modem found
 #
 # "Finding a modem" is hereby defined as getting a reaction of "OK"
-# to sending "AT" at the file handle in question.
+# to writing "AT" into the file handle in question.
 sub check_for_modem {
 
     DEBUG ("Starting modem check (AT)");
@@ -311,6 +311,9 @@ sub check_for_modem {
 # Args:     None
 # Returns:  String  Name of the modem model
 #           undef   No name found
+#
+# Different modems report *very* different things here, but it's enough
+# to see if it's a E160-type modem.
 sub get_modem_model {
 
     DEBUG ("Querying modem type");
@@ -385,9 +388,12 @@ sub enter_pin {
 ########################################################################
 # Function: do_ussd_query
 # Args:     None.
-# Returns:  undef   No expected answer, timeout, error
-#           String  The received message with the answer to the USSD
-#                   query.
+# Returns:  Hashref 
+#           Key 'ok':   $success if USSD query successfully transmitted
+#                       and answer received
+#                       $fail if USSD query aborted or not able to send
+#           Key 'msg':  Error message or USSD query result, in accordance
+#                       to the value of 'ok'.
 sub do_ussd_query {
 
     DEBUG ("Starting USSD query");
@@ -396,7 +402,7 @@ sub do_ussd_query {
         DEBUG ("USSD query succesful, answer received");
         my ($val1,$hexstring,$encoding) = $result->{description} =~ m/(\d+),"([^"]+)",(\d+)/i;
         if ( ! defined $encoding ) {
-            # Hat der RA nicht gepasst?
+            # Didn't the RE match?
             DEBUG ("Couldn't parse CUSD message: \"", $result->{description}, "\"");
             return { ok => $fail, msg => "Couldn't understand modem answer: \"" . $result->{description} . "\"" };
         }
@@ -428,7 +434,18 @@ sub do_ussd_query {
 #                       wait_for_cmd_answer
 #                           Break in case of ERROR, but wait for 
 #                           the real result after OK
-# Returns:  Hash ref   Result of sent command
+# Returns:  Hashref    Result of sent command
+#           Key 'ok':   $success if AT command successfully transmitted
+#                       and answer received
+#                       $fail if AT command aborted or not able to send
+#           Key 'match':
+#                       What expect matched,
+#                       'OK'|'ERROR'|'+CME ERROR'|'+CMS ERROR'
+#           Key 'description':
+#                       Error description, OK/ERROR, output of modem
+#                       between AT command and OK, result of USSD query
+#                       after OK, all in accordance to key 'ok' and
+#                       arg $how_to_react
 sub send_command {
     my ($cmd, $how_to_react)	= @_;
 
@@ -452,15 +469,15 @@ sub send_command {
         $first_word = uc $first_word;
         $match_string =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
         if ( $first_word eq 'ERROR' ) {
-            # OK/ERROR sind die zwei der drei "Kommando beendet"-Anzeiger.
+            # OK/ERROR are two of the three "command done" markers.
             return { ok => $fail, match => $match_string, description => 'Broken command' } ;
         }
         elsif ( $first_word eq '+CMS ERROR' || $first_word eq '+CME ERROR' ) {
-            # Nach diesen Fehlern kommt auch kein OK/ERROR mehr
+            # After these errors there will be no OK/ERROR anymore
             return { ok => $fail, match => $match_string, description => "Network error: $args" } ;
         }
         elsif ( $first_word eq 'OK' ) {
-            # $before_match enthaelt die Daten zwischen AT und OK
+            # $before_match contains data between AT and OK
             $before_match =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
             return { ok => $success, match => $match_string, description => $before_match } ;
         }
@@ -472,7 +489,7 @@ sub send_command {
         }
     }
     else {
-        # Expect-Error melden & aussteigen
+        # Report Expect error and bail
         if ($error =~ /^1:/) {
             # Timeout
             return { ok => $fail, match => $error, description => "No answer for $timeout_for_answer seconds!" };
@@ -498,10 +515,8 @@ sub send_command {
 
 ########################################################################
 # Function: ignore_state_line
-# Args:     $state_name Name of state message
-#           $result     Value if state message
-# Returns:  Nothing, but continues the expect()-call if state message is
-#           harmless.
+# Args:     $exp        The Expect object in use
+# Returns:  Nothing, but continues the expect() call
 sub ignore_state_line {
     my $exp = shift;
     my ($state_name, $result) = $exp->matchlist();
@@ -512,10 +527,9 @@ sub ignore_state_line {
 
 ########################################################################
 # Function: network_error
-# Args:     $state_msg_type    Type of state message
+# Args:     $exp        The Expect object in use
 #           $state_msg_result  Value of state message
-# Returns:  Always 0, which will cause the calling function to end
-#           the expect() call.
+# Returns:  Nothing, will end the expect() call
 sub network_error {
     my $exp = shift;
     my ($error_msg_type,$error_msg_value) = $exp->matchlist();
@@ -532,6 +546,7 @@ sub ussd_query_cmd {
 	my $result_code_presentation    = '1';      # Enable result code presentation
 	my $encoding                    = '15';     # No clue, what this value means
 	my $ussd_string;
+
     if ( $use_cleartext ) {
         $ussd_string = $ussd_cmd;
     }
@@ -563,12 +578,13 @@ sub string_to_hex {
 # Returns:  String in UTF-8 encoding
 sub gsm0338_to_utf8 {
     my $utf8;
+
     eval {
         $utf8 = decode( 'gsm0338', $_[0] , 1);
     };
     if ( $@ ) {
-        print "Konvertierung GSM0338->UTF-8 fehlgeschlagen: $@\n";
-        print "Das hätte gar nicht passieren dürfen!\n";
+        print STDERR "Converting GSM0338->UTF-8 failed: $@\n";
+        print STDERR "This shouldn't have happened at all!";
         exit 1;
     }
     return $utf8;
@@ -580,12 +596,13 @@ sub gsm0338_to_utf8 {
 # Returns:  String in GSM 03.38 encoding
 sub utf8_to_gsm0338 {
     my $gsm0338;
+
     eval {
         $gsm0338 = encode( 'gsm0338', $_[0] , 1);
     };
     if ( $@ ) {
-        print STDERR "Konvertierung UTF-8->GSM0338 fehlgeschlagen: $@\n";
-        print STDERR "Bitte das USSD-Kommando pruefen!\n";
+        print STDERR "Converting UTF-8->GSM0338 failed: $@\n";
+        print STDERR "Please check the USSD query for illegal characters!\n";
         exit 1;
     }
     return $gsm0338;
@@ -597,21 +614,23 @@ sub utf8_to_gsm0338 {
 # Returns:  Hexstring containing the above string in GSM 03.38 encoding
 sub encode_text {
 	my ($text)              = @_;
-	my $gsm_text	        = utf8_to_gsm0338( $text );
-	my $packed_gsm_string	= gsm_pack( $gsm_text );
-	return	            	string_to_hex( $packed_gsm_string );
+
+	my $gsm_text	        = utf8_to_gsm0338 ( $text );
+	my $packed_gsm_string	= gsm_pack ( $gsm_text );
+	return	            	string_to_hex ( $packed_gsm_string );
 }
 
 ########################################################################
 # Function: decode_text
 # Args:     A hex string of GSM packed values corresponding to GSM
 #           chars.
-# Returns:  A human readable version the argument.
+# Returns:  A human readable string.
 sub decode_text {
-	my ($hex)    	= @_;
-	my $packed_gsm_string	= hex_to_string($hex);
-	my $gsm_string	        = gsm_unpack($packed_gsm_string);
-	return	            	gsm0338_to_utf8( $gsm_string );
+	my ($hex)               = @_;
+
+	my $packed_gsm_string	= hex_to_string ( $hex );
+	my $gsm_string	        = gsm_unpack ( $packed_gsm_string );
+	return	            	gsm0338_to_utf8 ( $gsm_string );
 }
 
 ########################################################################
@@ -664,35 +683,94 @@ sub repack_bits {
 
 ########################################################################
 # Function: gsm_unpack
+# Args:     String to unpack 7 bit values from
+# Returns:  String containing 7 bit values of the arg per character
 sub gsm_unpack {
 	return repack_bits (8,7, $_[0]);
 }
 
 ########################################################################
 # Function: gsm_pack
+# Args:     String of 7 bit values to pack (8 7 bit values into 7 eight
+#           bit values)
+# Returns:  String containing 7 bit values of the arg per character
 sub gsm_pack {
 	return repack_bits(7, 8, $_[0]);
 }
 
 ########################################################################
 # Function: DEBUG
+# Args:     Strings to print with a [DEBUG] prefix
+# Returns:  Void
 sub DEBUG {
     if ($debug) {
         print STDERR '[DEBUG] ' . join(' ',@_) . $/ ;
     }
 }
 
+
 ########################################################################
 __END__
 
+=encoding utf-8
+
 =head1 NAME
 
-gsm_ussd
+gsm-ussd
 
 =head1 SYNOPSYS
 
- gsm_ussd --help|-h|-?
- gsm_ussd [-m <modem>] [-t <timeout>] [-p <pin>] [-c] [-d] [-l <logfile>] [<ussd-cmd>]
+ gsm-ussd --help|-h|-?
+ gsm-ussd [-m <modem>] [-t <timeout>] [-p <pin>] [<ussd-cmd>]
+
+=head1 OPTIONS AND ARGUMENTS
+
+Please note that this is only a very quick overview.  For further info
+about options and USSD queries, please use C<man gsm-ussd>.
+
+=over
+
+=item B<< --modem|-m <modem> >>
+
+Sets the device file to use to connect to the modem. Default is
+C</dev/ttyUSB1>.
+
+=item B<< --timeout|-t <timeout_in_secs> >>
+
+The timeout in seconds that the script will wait for an answer after
+each command sent to the modem.  Default is B<20> seconds.
+
+=item B<< --pin|-p <PIN> >>
+
+The SIM PIN, if the card is still locked.
+
+=item B<--cleartext|-c>
+
+This option causes gsm-ussd to send USSD queries in cleartext, i.e.
+without encoding them into a 7bit-packed-hex-string.
+
+=item B<--no-cleartext>
+
+This is the opposite of the previous option: Use encoding, even if the
+modem type does not indicate that it is needed.
+
+=item B<--help|-h|-?>
+
+Shows the online help.
+
+=item B<< --logfile|-l <logfilename> >>
+
+Writes the chat between modem and script into the named log file.
+
+=item B<--debug|-d>
+
+Switches debug mode on. The script will then explain its actions
+and their results in high detail.
+
+=back
+
+Everything else on the command line is supposed to be a USSD query.
+Default is 'B<*100#>'.
 
 =head1 DESCRIPTION
 
@@ -702,8 +780,7 @@ B<*100#> This query, typed as a "telephone number" into your mobile phone,
 will show the balance of your account. Other codes are available to
 replenish your account, query your own phone number and a lot more.
 
-For further info about USSD queries and this script, please use
-"man gsm-ussd".
+C<gsm-ussd> will let you send USSD queries with your UMTS/GSM modem.
 
 =head1 AUTHOR
 
