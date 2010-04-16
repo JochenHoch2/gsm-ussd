@@ -279,7 +279,7 @@ sub check_modemport {
         print STDERR "* Wrong device file given (-m ?)\n";
         print STDERR "* Device file broken?\n";
         print STDERR "Please check!\n";
-        # No abort, maybe the user knows what he's doing...
+        exit 1;
     }
 }
 
