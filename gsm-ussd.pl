@@ -42,7 +42,8 @@ my $show_online_help    = 0;                # Option flag online help
 my $debug               = 0;                # Option flag debug mode
 my $expect              = undef;            # The Expect object
 my $expect_logfilename  = undef;            # Filename to log the modem dialog into
-my $pin                 = undef;            # Option PIN
+my $pin                 = undef;            # Value for option PIN
+my @all_args            = @ARGV;            # Backup of args to print them for debug
 
 # Consts
 my $success = 1;
@@ -165,10 +166,11 @@ my %expect_programs = (
 ########################################################################
 # Main
 ########################################################################
-DEBUG ("Start, setting output to UTF-8");
+DEBUG ("Start, Args: ", @all_args);
+DEBUG ("Setting output to UTF-8");
 binmode (STDOUT, ':utf8');
 
-check_modemport ( $modemport );
+check_modemport ($modemport);
 
 DEBUG ("Opening modem");
 if ( ! open MODEM, '+<', $modemport ) {
