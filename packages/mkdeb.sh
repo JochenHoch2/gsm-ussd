@@ -5,7 +5,7 @@
 #	make all
 # first.
 
-VERSION=$(git describe | sed -e 's/^v//' -e 's/-/_/g')
+VERSION=$( git describe | sed -e 's/^v//' -e 's/-[^-]*$//' )
 
 BASE_PATH=gsm-ussd_${VERSION}_all
 BIN_PATH=$BASE_PATH/usr/bin
