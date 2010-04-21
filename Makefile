@@ -23,5 +23,9 @@ install-doc:	doc
 	install docs/en.man $(MAN_PATH)/man1/gsm-ussd.1
 	install docs/de.man $(MAN_PATH)/de/man1/gsm-ussd.1
 
+deb:		doc
+	cd packages && ./mkdeb.sh
+
 clean:
 	rm docs/*.man
+	rm packages/*.deb

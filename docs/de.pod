@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-gsm-ussd
+gsm-ussd - USSD-Abfragen über ein GSM/UMTS-Modem senden
 
 =head1 SYNOPSYS
 

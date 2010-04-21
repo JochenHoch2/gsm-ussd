@@ -1,0 +1,17 @@
+Package: gsm-ussd
+Version: @@VERSION@@
+Section: net
+Priority: optional
+Architecture: all
+Depends: libexpect-perl (>= 1.20-2)
+Maintainer: Jochen Gruse <jochen@zum-quadrat.de>
+Description: Tool to send USSD queries via GSM or UMTS modems
+ This program lets you send USSD (Unstructured Supplementary
+ Services Data) with your GSM or UMTS modem. USSD queries are
+ "phone numbers" like "*100#", which will result in a message
+ (NOT a SMS) with your current prepaid account balance.
+ .
+ You can use this program to query your own phone number, 
+ replenish your prepaid account, query your free minutes left
+ and so on, depending on your GSM provider.
+
