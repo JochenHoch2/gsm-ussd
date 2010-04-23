@@ -11,6 +11,12 @@
 # Author:	Jochen Gruse <jochen@zum-quadrat.de>
 ########################################################################
 
+# Just for development & debugging
+CLEANUP=1
+if [ $# -eq 1 -a "x$1" = "x-n" ] ; then
+	CLEANUP=0
+fi
+
 # VERSION is set by mangling "git describe" output
 VERSION=$( git describe | sed -e 's/^v//' -e 's/-[^-]*$//' )
 
@@ -38,6 +44,16 @@ function create_installation_directories {
 		exit 1
 	fi
 	return 0
+}
+
+
+########################################################################
+# Create md5sums of all files in directory tree
+########################################################################
+function create_md5sums {
+	( cd $BASE_PATH && \
+	find usr -type f -print0 | \
+	xargs -0 md5sum > ../$DEBIAN_PATH/md5sums )
 }
 
 
@@ -79,6 +95,8 @@ function copy_gsm-ussd_files {
 	gzip --best $DOC_PATH/changelog
 	gzip --best $DOC_PATH/changelog.Debian
 
+	create_md5sums
+
 	if [[ $SUCCESS -eq 0 ]] ; then
 		echo "Could not copy installation files - abort" >&2
 		exit 1
@@ -112,6 +130,6 @@ copy_gsm-ussd_files
 
 build_deb_package
 
-clean_up
+[ $CLEANUP -eq 1 ] && clean_up
 
 exit 0
