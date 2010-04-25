@@ -32,3 +32,4 @@ deb:		doc
 clean:
 	rm docs/*.man
 	rm packages/*.deb
+	rm packages/*.tar.gz
