@@ -23,6 +23,9 @@ install-doc:	doc
 	install docs/en.man $(MAN_PATH)/man1/gsm-ussd.1
 	install docs/de.man $(MAN_PATH)/de/man1/gsm-ussd.1
 
+tar:		doc
+	git archive --prefix="gsm-ussd_`packages/print_version.sh`/" HEAD | gzip -9 > packages/gsm-ussd_`packages/print_version.sh`.tar.gz
+
 deb:		doc
 	cd packages && ./mkdeb.sh
 

@@ -18,7 +18,7 @@ if [ $# -eq 1 -a "x$1" = "x-n" ] ; then
 fi
 
 # VERSION is set by mangling "git describe" output
-VERSION=$( git describe | sed -e 's/^v//' -e 's/-[^-]*$//' )
+VERSION=$( ./print_version.sh )
 
 # Install paths for gsm-ussd files in .deb file
 BASE_PATH=gsm-ussd_${VERSION}_all
