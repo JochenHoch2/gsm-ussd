@@ -30,6 +30,6 @@ deb:		doc
 	cd packages && ./mkdeb.sh
 
 clean:
-	rm docs/*.man
-	rm packages/*.deb
-	rm packages/*.tar.gz
+	rm -f docs/*.man
+	rm -f packages/*.deb
+	rm -f packages/*.tar.gz
