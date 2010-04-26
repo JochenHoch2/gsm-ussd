@@ -17,8 +17,7 @@ if [ $# -eq 1 -a "x$1" = "x-n" ] ; then
 	CLEANUP=0
 fi
 
-# VERSION is set by mangling "git describe" output
-VERSION=$( git describe | sed -e 's/^v//' -e 's/-[^-]*$//' )
+VERSION=$( ./print_version.sh )
 
 # Install paths for gsm-ussd files in .deb file
 BASE_PATH=gsm-ussd_${VERSION}_all
@@ -33,13 +32,15 @@ DOC_PATH=$BASE_PATH/usr/share/doc/gsm-ussd
 # Create directory tree for .deb file
 ########################################################################
 function create_installation_directories {
-	local SUCCESS=1
-	mkdir -p $BIN_PATH 2>/dev/null		|| SUCCESS=0
-	mkdir -p $MAN_EN_PATH 2>/dev/null	|| SUCCESS=0
-	mkdir -p $MAN_DE_PATH 2>/dev/null	|| SUCCESS=0
-	mkdir -p $DEBIAN_PATH 2>/dev/null	|| SUCCESS=0
-	mkdir -p $DOC_PATH 2>/dev/null	|| SUCCESS=0
-	if [[ $SUCCESS -eq 0 ]] ; then
+	(
+		set -e
+		mkdir -p $BIN_PATH
+		mkdir -p $MAN_EN_PATH
+		mkdir -p $MAN_DE_PATH
+		mkdir -p $DEBIAN_PATH
+		mkdir -p $DOC_PATH
+	) 2>/dev/null
+	if [[ $? -ne 0 ]] ; then
 		echo "Could not create installation directories - abort" >&2
 		exit 1
 	fi
@@ -61,43 +62,43 @@ function create_md5sums {
 # Copy all needed files of gsm-ussd into the directory tree for .deb
 ########################################################################
 function copy_gsm-ussd_files {
-	local SUCCESS=1
+	(
+		set -e
 
-	# Binary
-	cp ../gsm-ussd.pl $BIN_PATH/gsm-ussd || SUCCESS=0
+		# Binary
+		cp ../gsm-ussd.pl $BIN_PATH/gsm-ussd
 
-	# Man pages
-	cp ../docs/en.man $MAN_EN_PATH/gsm-ussd.1 || SUCCESS=0
-	cp ../docs/de.man $MAN_DE_PATH/gsm-ussd.1 || SUCCESS=0
-	gzip --best $MAN_EN_PATH/gsm-ussd.1 || SUCCESS=0
-	gzip --best $MAN_DE_PATH/gsm-ussd.1 || SUCCESS=0
-	
-	# Debian control file
-	sed -e 's/@@VERSION@@/'$VERSION'/' control.tmpl > $DEBIAN_PATH/control || SUCCESS=0
+		# Man pages
+		cp ../docs/en.man $MAN_EN_PATH/gsm-ussd.1
+		cp ../docs/de.man $MAN_DE_PATH/gsm-ussd.1
+		gzip --best $MAN_EN_PATH/gsm-ussd.1
+		gzip --best $MAN_DE_PATH/gsm-ussd.1
+		
+		# Supplementary docs
+		cp ../LICENSE $DOC_PATH/copyright
+		cp ../docs/README.en $DOC_PATH
+		cp ../docs/README.de $DOC_PATH
+		cp ../README $DOC_PATH
+		cp ../TODO $DOC_PATH
+		git log > $DOC_PATH/changelog
+		cat > $DOC_PATH/changelog.Debian <<-'EOF'
+		gsm-ussd (0.1.0-1) karmic lucid; urgency=low
 
-	# Supplementary docs
-	cp ../LICENSE $DOC_PATH/copyright || SUCCESS=0
-	cp ../docs/README.en $DOC_PATH || SUCCESS=0
-	cp ../docs/README.de $DOC_PATH || SUCCESS=0
-	cp ../README $DOC_PATH || SUCCESS=0
-	cp ../TODO $DOC_PATH || SUCCESS=0
-	git log > $DOC_PATH/changelog
-	cat > $DOC_PATH/changelog.Debian <<-'EOF'
-	gsm-ussd (0.1.0-1) karmic lucid; urgency=low
+		  * This file will not be updated
+		    Please see normal changelog file for updates,
+		    as Debian maintainer andupstream author are identical.
 
-	  * This file will not be updated
-	    Please see normal changelog file for updates,
-	    as Debian maintainer andupstream author are identical.
+		 -- Jochen Gruse <jochen@zum-quadrat.de>  Wed, 21 Apr 2010 22:59:36 +0200
 
-	 -- Jochen Gruse <jochen@zum-quadrat.de>  Wed, 21 Apr 2010 22:59:36 +0200
+		EOF
+		gzip --best $DOC_PATH/changelog
+		gzip --best $DOC_PATH/changelog.Debian
 
-	EOF
-	gzip --best $DOC_PATH/changelog
-	gzip --best $DOC_PATH/changelog.Debian
-
-	create_md5sums
-
-	if [[ $SUCCESS -eq 0 ]] ; then
+		# Debian control and support files
+		sed -e 's/@@VERSION@@/'$VERSION'/' control.tmpl > $DEBIAN_PATH/control
+		create_md5sums
+	) 2>/dev/null
+	if [ $? -ne 0 ] ; then
 		echo "Could not copy installation files - abort" >&2
 		exit 1
 	fi
@@ -119,6 +120,7 @@ function build_deb_package {
 function clean_up {
 	rm -rf $BASE_PATH
 }
+
 
 ########################################################################
 # Main

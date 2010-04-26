@@ -1,0 +1,18 @@
+Please note:
+============
+
+Scripts in this directory are part and parcel of the Makefile
+infrastructure to build a .tar or .deb file. They are meant to be called
+
+* from their corresponding Makefile targets (deb, tar)
+* with the packages directory as working directory, which the
+  Makefile targets will take care of.
+
+Should you have a mind to play with these scripts, do a 
+
+$ make
+
+in the top level directory first as at least mkdeb.sh expects
+the documentation to have been built.
+
+Jochen Gruse <jochen@zum-quadrat.de>
