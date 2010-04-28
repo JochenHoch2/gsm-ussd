@@ -3,6 +3,11 @@
 # Script:	kussd.sh
 # Description:	Prototype of a GUI for gsm-ussd
 # Author:	Jochen Gruse
+# External dependencies:	(Package)
+#		grep		(grep)
+#		kdialog		(kdebase-bin)
+#		qdbus		(libqt4-dbus)
+#		gsm-ussd	(gsm-ussd)
 ########################################################################
 
 
@@ -100,10 +105,8 @@ kill $PROGRESS_PID >&- 2>&-
 # Show gsm-ussd result in appropiate dialog box
 if [ $GSM_USSD_EXITCODE -ne 0 ] ; then
 	DIALOG_TYPE="--error"
-	# kdialog --title "$TITLE" --error "$RESULT"
 else
 	DIALOG_TYPE="--msgbox"
-	# kdialog --title "$TITLE" --msgbox "$RESULT"
 fi
 kdialog --title "$TITLE" $DIALOG_TYPE "$RESULT"
 
