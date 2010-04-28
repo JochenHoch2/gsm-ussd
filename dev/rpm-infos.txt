@@ -1,0 +1,49 @@
+Offene Fragen:
+* Wie setze ich das gesamte Build-Verzeichnis inkl.  SPECS, SOURCES etc.? --rcfile?
+* Nur das Bin-RPM builden?
+
+Geschrieben von Marcel Di, April 27, 2010 18:50:33
+
+RPM bauen ist relativ einfach:
+Man braucht eigentlich nur eine Bauanleitung in Form eines .spec Files,
+legt das .tar.gz in das SOURCES Verzeichnis
+	(bei SuSE unter /usr/src/packges, bei RedHat auch irgendwo unter /usr/src/...)
+und danach ruft man "rpmbuild -ba <name des .spec Files> auf - und los geht's.
+
+Beispiel für das .spec File:
+Name: gsm-ussd
+License: GPL
+Group: Productivity/Networking
+Version: 0.1.1
+Release: 0
+Summary: USSD query tool
+Source: %{name}_%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-build
+
+%description
+gsm-ussd is a script to send USSD (Unstructured Supplementary
+Services Data) queries to your broadband provider.
+
+Authors:
+--------
+Jochen Gruse <jochen@zum-quadrat.de>
+
+%prep
+%setup -n %{name}_%{version}
+
+%build
+
+%install
+install -d -m 755 $RPM_BUILD_ROOT%{_mandir}/man1
+install -d -m 755 $RPM_BUILD_ROOT%{_mandir}/de/man1
+make BIN_PATH=$RPM_BUILD_ROOT%{_bindir} MAN_PATH=$RPM_BUILD_ROOT%{_mandir} install install-doc
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+%doc INSTALL README LICENSE TODO docs/README.* docs/story.txt
+%doc %{_mandir}/man1/*
+%doc %{_mandir}/de/man1/*
+%{_bindir}/*

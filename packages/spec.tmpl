@@ -1,0 +1,36 @@
+Name: gsm-ussd
+License: GPL
+Group: Productivity/Networking
+Version: @@VERSION@@
+Release: @@RELEASE@@
+Summary: USSD query tool
+Source: %{name}_%{version}-%{release}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-build
+
+%description
+gsm-ussd is a script to send USSD (Unstructured Supplementary
+Services Data) queries to your broadband provider.
+
+Authors:
+--------
+Jochen Gruse <jochen@zum-quadrat.de>
+
+%prep
+%setup -n %{name}_%{version}
+
+%build
+
+%install
+install -d -m 755 $RPM_BUILD_ROOT%{_mandir}/man1
+install -d -m 755 $RPM_BUILD_ROOT%{_mandir}/de/man1
+make BIN_PATH=$RPM_BUILD_ROOT%{_bindir} MAN_PATH=$RPM_BUILD_ROOT%{_mandir} install install-doc
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+%doc INSTALL README LICENSE TODO docs/README.* docs/story.txt
+%doc %{_mandir}/man1/*
+%doc %{_mandir}/de/man1/*
+%{_bindir}/*

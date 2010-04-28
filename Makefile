@@ -29,6 +29,9 @@ tar:		doc
 deb:		doc
 	cd packages && ./mkdeb.sh
 
+rpm:		doc	tar
+	cd packages && ./mkrpm.sh
+
 clean:
 	rm -f docs/*.man
 	rm -f packages/*.deb
