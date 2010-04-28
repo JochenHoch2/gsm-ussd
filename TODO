@@ -18,11 +18,15 @@ This is just a collection of ideas. Care to comment?
 * A small GUI, built around tools like zenity, kdialog or xdialog
   or even kommander.
 
+  A first working prototype is available:	kussd.sh
+  If you prefer GNOME instead of KDE:		gussd.sh
+
 * Add another option "-v|--verbose", which will query and output
   modem type, net the modem is logged into and other trivia.
 
 * Add support and Makefile targets for RPM packages for
   an even easier installation.
+
   As of 21.04.2010, DEB support is available!
 
 * Some kind of localisation?
