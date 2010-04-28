@@ -261,6 +261,14 @@ sub check_modemport {
         exit 1;
     }
 
+    if ( ! -c $mp ) {
+        print STDERR "Modem device \"$mp\" is no character device file. Possible causes:\n";
+        print STDERR "* Wrong device file given (-m ?)\n";
+        print STDERR "* Device file broken?\n";
+        print STDERR "Please check!\n";
+        exit 1;
+    }
+
     if ( ! -r $mp ) {
         print STDERR "Can't read from device \"$mp\".\n";
         print STDERR "Set correct rights for \"$mp\" with chmod?\n";
@@ -272,14 +280,6 @@ sub check_modemport {
         print STDERR "Can't write to device \"$mp\".\n";
         print STDERR "Set correct rights for \"$mp\" with chmod?\n";
         print STDERR "Perhaps use another device with -m?\n";
-        exit 1;
-    }
-
-    if ( ! -c $mp ) {
-        print STDERR "Modem device \"$mp\" is no device file. Possible causes:\n";
-        print STDERR "* Wrong device file given (-m ?)\n";
-        print STDERR "* Device file broken?\n";
-        print STDERR "Please check!\n";
         exit 1;
     }
 }
