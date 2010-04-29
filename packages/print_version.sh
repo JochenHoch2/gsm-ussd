@@ -9,5 +9,89 @@
 # Author:	Jochen Gruse <jochen@zum-quadrat.de>
 #######################################################################
 
-git describe | \
-sed -e 's/^v//' -e 's/-[^-]*$//'
+PROGRAM_NAME=${0##*/}
+
+#######################################################################
+# Function:	usage
+# Description:	Print usage of script and exit, if exit code is given
+function usage {
+	[ $# -gt 0 ] && EXITCODE="$1"
+	echo "Usage: $PROGRAM_NAME [-f] [-r] [-v] [-v]" >&2
+	# More at a later time
+	[ -n "$EXITCODE" ] && exit "$EXITCODE"
+}
+
+########################################################################
+# Function:	running_in_git_repo
+# Description	Checks whether 
+#			* git is available
+#			* we are in a git repo
+#		and returns corresponding exit code
+function running_in_git_repo {
+	if which git >/dev/null 2>&1 ; then
+		if git log >/dev/null 2>&1 ; then
+			# git installed, in git repo
+			return 0
+		else
+			# git installed, but not in git repo
+			return 1
+		fi
+	else
+		# git not even installed
+		return 1
+	fi
+	# NOTREACHED
+        echo "This could not have happened - unexpected fall-thru in $FUNCNAME" >&2
+}
+
+VERSION_TYPE=full
+
+EXIT_SUCCESS=0
+EXIT_ERROR=1
+EXIT_BUG=2
+
+while getopts ':frvh' OPTION ; do
+	case $OPTION in
+	f) VERSION_TYPE=full
+	;;
+	r) VERSION_TYPE=release
+	;;
+	v) VERSION_TYPE=version
+	;;
+	h) usage $EXIT_SUCCESS
+	;;
+	\?) echo "Unknown option \"-$OPTARG\"." >&2
+	usage $EXIT_ERROR
+	;;
+	*) echo "This could not have happened - unknown and unhandled option." >&2
+ 	usage $EXIT_BUG
+	;;
+	esac
+done
+# Verbrauchte Argumente überspringen
+shift $(( OPTIND - 1 ))
+
+if running_in_git_repo ; then
+	case $VERSION_TYPE in
+	full)
+		git describe | \
+		sed -e 's/^v//' -e 's/.[^-]*$//'
+		;;
+	release)
+		git describe | \
+		sed -e 's/^v//' -e 's/.[^-]*$//' -e 's/^[^-]*-//'
+		;;
+	version)
+		git describe --abbrev=0 | \
+		sed -e 's/^v//'
+		;;
+	*)
+		echo "This could not have happened - unknown requested version type" >&2
+		usage $EXIT_BUG
+		;;
+	esac
+else
+	: Irgendwie eine Versionsnummer aus dem Hut zaubern
+fi
+
+exit $EXIT_SUCCESS
