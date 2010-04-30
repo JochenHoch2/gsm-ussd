@@ -1,3 +1,11 @@
+########################################################################
+# File:		spec.tmpl
+# Description:	This is the template for the .spec file to build a
+#		RPM package for the current version of the gsm-ussd
+#		project.
+# Author:	"Marcel" (commentator at http://linux.zum-quadrat.de)
+#		Jochen Gruse <jochen@zum-quadrat.de>
+########################################################################
 Name: gsm-ussd
 License: GPL
 Group: Productivity/Networking
@@ -5,11 +13,22 @@ Version: @@VERSION@@
 Release: @@RELEASE@@
 Summary: USSD query tool
 Source: %{name}_%{version}-%{release}.tar.gz
+# The following line commented out because rpm seems to be 
+# smart enough to figure out that this a perl script and 
+# will need the modules it "use"s. Impressive!
+# Requires: perl >= 5.8, perl-Expect
 BuildRoot: %{_tmppath}/%{name}-%{version}-build
+BuildArch: noarch 
 
 %description
 gsm-ussd is a script to send USSD (Unstructured Supplementary
-Services Data) queries to your broadband provider.
+Services Data) queries to your broadband provider. USSD queries
+are "phone numbers" like "*100#", which will result in a message
+(NOT a SMS) with your current prepaid account balance.
+
+You can use this program to query your own phone number,
+replenish your prepaid account, query your free minutes left
+and so on, depending on your GSM provider.
 
 Authors:
 --------

@@ -1,17 +1,39 @@
 #!/bin/bash
+########################################################################
+# Script:	mkrpm.sh
+# Description:	Creates a RPM build infrastructure, populates it with
+#		all needed files and builds a binary noarch RPM file
+#		containing the gsm-ussd project.
+# Author:	Jochen Gruse <jochen@zum-quadrat.de> 
+########################################################################
 
-# trap 'rm -rf rpm ; exit 0' 0
+# Clean up while exiting
+trap 'rm -rf rpm ; exit 0' 0
 
-mkdir -p rpm/SPECS rpm/BUILD rpm/SOURCES rpm/RPMS rpm/BUILDROOT
+# Create work directory
+mkdir -p rpm/SOURCES rpm/SPECS rpm/BUILD rpm/RPMS rpm/BUILDROOT rpm/SRPMS
 
-FULL_VERSION=$( ./print_version.sh )
-VERSION=${FULL_VERSION%-*}
-RELEASE=${FULL_VERSION##*-}
+# Get project version and release
+VERSION=$( ./print_version.sh -v )
+RELEASE=$( ./print_version.sh -r )
 
-RPMRC_FILES="/usr/lib/rpm/rpmrc:/usr/lib/rpm/redhat/rpmrc:/etc/rpmrc:~/.rpmrc:./rpmrc"
+BASE_FILENAME="gsm-ussd_${VERSION}"
+SPEC_FILE="rpm/SPECS/${BASE_FILENAME}.spec"
+TAR_FILE="${BASE_FILENAME}-${RELEASE}.tar.gz"
 
-SPEC_FILE=gsm-ussd_${VERSION}.spec
+# Populate build directories with .{spec,tar.gz} files
+sed	-e '/^ *#/d' \
+	-e 's/@@VERSION@@/'${VERSION}'/' \
+	-e 's/@@RELEASE@@/'${RELEASE}'/' \
+	spec.tmpl >$SPEC_FILE
 
-sed -e 's/@@VERSION@@/'${VERSION}'/' -e 's/@@RELEASE@@/'${RELEASE}'/'  spec.tmpl >rpm/SPECS/$SPEC_FILE
+mv $TAR_FILE rpm/SOURCES
 
-rpmbuild --rcfile="$RPMRC_FILES" -ba $SPEC_FILE
+# Create RPM package
+rpmbuild --define "_topdir $PWD/rpm" -bb $SPEC_FILE
+
+# Save RPM package
+mv rpm/RPMS/noarch/*.rpm .
+
+# Cleanup will happen on exit
+exit 0
