@@ -86,7 +86,7 @@ function copy_gsm-ussd_files {
 
 		  * This file will not be updated
 		    Please see normal changelog file for updates,
-		    as Debian maintainer andupstream author are identical.
+		    as Debian maintainer and upstream author are identical.
 
 		 -- Jochen Gruse <jochen@zum-quadrat.de>  Wed, 21 Apr 2010 22:59:36 +0200
 
