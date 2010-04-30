@@ -44,6 +44,11 @@ function running_in_git_repo {
         echo "This could not have happened - unexpected fall-thru in $FUNCNAME" >&2
 }
 
+
+########################################################################
+# Main
+########################################################################
+
 VERSION_TYPE=full
 
 EXIT_SUCCESS=0
@@ -70,6 +75,7 @@ while getopts ':frvh' OPTION ; do
 done
 # Verbrauchte Argumente überspringen
 shift $(( OPTIND - 1 ))
+
 
 if running_in_git_repo ; then
 	case $VERSION_TYPE in
