@@ -36,3 +36,5 @@ clean:
 	rm -f docs/*.man
 	rm -f packages/*.deb
 	rm -f packages/*.tar.gz
+	rm -f packages/*.spec
+	rm -f packages/*.rpm
