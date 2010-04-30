@@ -48,18 +48,18 @@ done
 shift $(( OPTIND - 1 ))
 
 
+FULL_VERSION=$( ./print_version.sh )
 if [ $TAR_FOR_RPM -eq 0 ] ; then
-	VERSION=$( ./print_version.sh )
+	VERSION=$FULL_VERSION
 else
 	VERSION=$( ./print_version.sh -v )
 fi
-FULL_PACKAGE_NAME=gsm-ussd_${VERSION}
-
+BASE_FILENAME=gsm-ussd
 
 (
 	cd ..
-	git archive --prefix="${FULL_PACKAGE_NAME}/" HEAD
+	git archive --prefix="${BASE_FILENAME}_${VERSION}/" HEAD
 ) | \
-gzip -9 > ${FULL_PACKAGE_NAME}.tar.gz
+gzip -9 > ${BASE_FILENAME}_${FULL_VERSION}.tar.gz
 
 exit $EXIT_SUCCESS
