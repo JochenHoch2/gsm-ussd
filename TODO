@@ -21,10 +21,6 @@ This is just a collection of ideas. Care to comment?
 * Add another option "-v|--verbose", which will query and output
   modem type, net the modem is logged into and other trivia.
 
-* Add support and Makefile targets for RPM packages for
-  an even easier installation.
-  As of 21.04.2010, DEB support is available!
-
 * Some kind of localisation?
   I'd prefer to keep this little script as selfcontained as possible,
   so I probably won't build some gettext()/.po-file infrastructure.
@@ -58,6 +54,16 @@ This is just a collection of ideas. Care to comment?
   As stated above, I don't even check m for different values (which I
   should). Is there anybody out there that knows what this is 
   used for and how it's done?
+
+
+DONE
+====
+
+* Added support and Makefile targets for 
+  - .tar.gz archives
+  - .deb packages,
+  - .rpm packages
+  for an even easier installation.
 
 
 NOT TO DO
