@@ -78,56 +78,51 @@ shift $(( OPTIND - 1 ))
 
 
 if running_in_git_repo ; then
-	case $VERSION_TYPE in
-	full)
+	RELEASE=$(
 		git describe | \
-		sed -e 's/^v//' -e 's/.[^-]*$//'
-		;;
-	release)
-		git describe | \
-		sed -e 's/^v//' -e 's/.[^-]*$//' -e 's/^[^-]*-//'
-		;;
-	version)
+		sed -e 's/^v[^-]*-//' -e 's/-g[^-]*$//'
+	)
+	if [ -n "$RELEASE" ] ; then
+		RELEASE=0
+	fi
+	VERSION=$(
 		git describe --abbrev=0 | \
 		sed -e 's/^v//'
-		;;
-	*)
-		echo "This could not have happened - unknown requested version type" >&2
-		usage $EXIT_BUG
-		;;
-	esac
+	)
 else
 	RELEASE=0
-	VERSION=$(awk '
-		/our +\$VERSION *=/ {
-			if (match ($0, /[0-9.]+/) ) {
-				print substr ($0, RSTART, RLENGTH)
-				exit 0
+	VERSION=$(
+		awk '
+			/our +\$VERSION *=/ {
+				if (match ($0, /[0-9.]+/) ) {
+					print substr ($0, RSTART, RLENGTH)
+					exit 0
+				}
 			}
-		}
-	' \
-	../gsm-ussd.pl )
+		' \
+		../gsm-ussd.pl
+	)
 	
-	if [ -n "$VERSION ] ; then
+	if [ -n "$VERSION" ] ; then
 		echo "This should not have happened - cannot find version number." >&2
 		exit $EXIT_ERROR
 	fi
-
-	case $VERSION_TYPE in
-	full)
-		echo "$VERSION-$RELEASE"
-		;;
-	release)
-		echo "$RELEASE"
-		;;
-	version)
-		echo "$VERSION"
-		;;
-	*)
-		echo "This could not have happened - unknown requested version type" >&2
-		usage $EXIT_BUG
-		;;
-	esac
 fi
+
+case $VERSION_TYPE in
+full)
+	echo "$VERSION-$RELEASE"
+	;;
+release)
+	echo "$RELEASE"
+	;;
+version)
+	echo "$VERSION"
+	;;
+*)
+	echo "This could not have happened - unknown requested version type" >&2
+	usage $EXIT_BUG
+	;;
+esac
 
 exit $EXIT_SUCCESS
