@@ -97,7 +97,37 @@ if running_in_git_repo ; then
 		;;
 	esac
 else
-	: Irgendwie eine Versionsnummer aus dem Hut zaubern
+	RELEASE=0
+	VERSION=$(awk '
+		/our +\$VERSION *=/ {
+			if (match ($0, /[0-9.]+/) ) {
+				print substr ($0, RSTART, RLENGTH)
+				exit 0
+			}
+		}
+	' \
+	../gsm-ussd.pl )
+	
+	if [ -n "$VERSION ] ; then
+		echo "This should not have happened - cannot find version number." >&2
+		exit $EXIT_ERROR
+	fi
+
+	case $VERSION_TYPE in
+	full)
+		echo "$VERSION-$RELEASE"
+		;;
+	release)
+		echo "$RELEASE"
+		;;
+	version)
+		echo "$VERSION"
+		;;
+	*)
+		echo "This could not have happened - unknown requested version type" >&2
+		usage $EXIT_BUG
+		;;
+	esac
 fi
 
 exit $EXIT_SUCCESS
