@@ -401,11 +401,19 @@ sub do_ussd_query {
     my $result = send_command ( ussd_query_cmd($ussd_query, $use_cleartext), 'wait_for_cmd_answer' );
     if ( $result->{ok} ) {
         DEBUG ("USSD query succesful, answer received");
-        my ($val1,$hexstring,$encoding) = $result->{description} =~ m/(\d+),"([^"]+)",(\d+)/i;
-        if ( ! defined $encoding ) {
+        my ($val1,$hexstring,$encoding) = $result->{description} =~ m/(\d+),"([^"]+)"(?:,(\d+))?/i;
+        if ( ! defined $val1 ) {
             # Didn't the RE match?
             DEBUG ("Couldn't parse CUSD message: \"", $result->{description}, "\"");
             return { ok => $fail, msg => "Couldn't understand modem answer: \"" . $result->{description} . "\"" };
+        }
+        elsif ( ! defined $encoding ) {
+            DEBUG ("CUSD message has no encoding, interpreting as cleartext");
+            return { ok => $success, msg => $hexstring };
+        }
+        elsif ( $use_cleartext ) {
+            DEBUG ("Modem uses cleartext, interpreting message as cleartext");
+            return { ok => $success, msg => $hexstring };
         }
         elsif ( $encoding == 0 ) {
             return { ok => $success, msg => hex_to_string( $hexstring ) };
