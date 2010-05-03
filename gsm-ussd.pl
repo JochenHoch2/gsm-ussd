@@ -175,7 +175,7 @@ check_modemport ($modemport);
 
 DEBUG ("Opening modem");
 if ( ! open MODEM, '+<', $modemport ) {
-	print STDERR "Can't open modem device \"$modemport\": $!";
+    print STDERR "Modem port \"$modemport\" seems in order, but cannot open it anyway:\n$!\n";
     exit 1;
 }
 
