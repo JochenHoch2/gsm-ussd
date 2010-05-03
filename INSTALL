@@ -22,11 +22,13 @@ Tested Hardware
 ---------------
 
 * Huwawei E160 (USB ID: 12d1:1003)
-  Development of gsm-ussd happens on this type of modem. A.k.a.
+  Development of gsm-ussd happens on this type of modem, a.k.a.
   MEDIONmobile (R) web stick S4011
 * Ericsson-Modem of the Ideapad S10 3G (USB ID: 0bdb:1900)
   Thanks to Ulf (yeti at debianforum.de)!
-  
+* Option GX301 (USB ID: 0af0:7011), a.k.a.
+  T-Mobile web'n'walk Card compact III (USB ID: 0af0:7011)
+  Thanks to Ulf, too (yeti at debianforum.de)!
 
 
 Prerequisites for building:
