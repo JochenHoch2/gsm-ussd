@@ -411,6 +411,10 @@ sub do_ussd_query {
             DEBUG ("CUSD message has no encoding, interpreting as cleartext");
             return { ok => $success, msg => $hexstring };
         }
+        elsif ( $use_cleartext ) {
+            DEBUG ("Modem uses cleartext, interpreting message as cleartext");
+            return { ok => $success, msg => $hexstring };
+        }
         elsif ( $encoding == 0 ) {
             return { ok => $success, msg => hex_to_string( $hexstring ) };
         }
