@@ -400,7 +400,7 @@ sub do_ussd_query {
     DEBUG ("Starting USSD query");
     my $result = send_command ( ussd_query_cmd($ussd_query, $use_cleartext), 'wait_for_cmd_answer' );
     if ( $result->{ok} ) {
-        DEBUG ("USSD query succesful, answer received");
+        DEBUG ("USSD query successful, answer received");
         my ($val1,$hexstring,$encoding) = $result->{description} =~ m/(\d+),"([^"]+)"(?:,(\d+))?/i;
         if ( ! defined $val1 ) {
             # Didn't the RE match?
