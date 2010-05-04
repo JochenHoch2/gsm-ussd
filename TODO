@@ -15,12 +15,6 @@ This is just a collection of ideas. Care to comment?
   after unlocking the SIM, poll it regularly until it reports 
   that it has found its net.
 
-* A small GUI, built around tools like zenity, kdialog or xdialog
-  or even kommander.
-
-  A first working prototype is available:	kussd.sh
-  If you prefer GNOME instead of KDE:		gussd.sh
-
 * Add another option "-v|--verbose", which will query and output
   modem type, net the modem is logged into and other trivia.
 
@@ -67,6 +61,8 @@ DONE
   - .deb packages,
   - .rpm packages
   for an even easier installation.
+
+* Added a small GUI, built around zenity and kdialog: xussd
 
 
 NOT TO DO
