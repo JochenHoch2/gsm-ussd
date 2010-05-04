@@ -80,9 +80,9 @@ shift $(( OPTIND - 1 ))
 if running_in_git_repo ; then
 	RELEASE=$(
 		git describe | \
-		sed -e 's/^v[^-]*-//' -e 's/-g[^-]*$//'
+		sed -e 's/^v[^-]*-\([0-9]*\).*/\1/'
 	)
-	if [ -n "$RELEASE" ] ; then
+	if [ -z "$RELEASE" ] ; then
 		RELEASE=0
 	fi
 	VERSION=$(
