@@ -107,25 +107,24 @@ function get_pin_kde {
 #		doesn't return for further 10 seconds because the PIN 
 #		had to be set...
 function show_progressbar_kde {
-	local TIMEOUT=20	# This is the default used in gsm-ussd
-        local -i COUNT=1
+	local -i MAX=20
+        local -i COUNT=0
+	local -i STEP=1
 
         local DBUS_REF=$(
 		kdialog \
 		--title "$TITLE" \
 		--progressbar "Query running..." \
-		$TIMEOUT \
+		$MAX \
 		2>&-
 	)
 
         trap 'qdbus $DBUS_REF close >/dev/null 2>&1; return 0' 0 15
 
-        while (( COUNT <= TIMEOUT )) ; do
-                qdbus $DBUS_REF \
-			org.freedesktop.DBus.Properties.Set \
-			org.kde.kdialog.ProgressDialog value $COUNT \
-			>/dev/null 2>&1
-                (( COUNT++ ))
+        while : ; do
+		(( COUNT += STEP ))
+                qdbus $DBUS_REF Set "" "value" $COUNT >/dev/null 2>&1
+		(( COUNT >= MAX )) && (( STEP = -STEP ))
                 sleep 1
         done
 
