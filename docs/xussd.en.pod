@@ -1,0 +1,36 @@
+=encoding utf8
+
+=head1 NAME
+
+xussd - Simple GUI for gsm-ussd
+
+=head1 SYNOPSYS
+
+ xussd [<gsm-ussd options>]
+
+=head1 DESCRIPTION
+
+To make USSD queries available for the CLI adverse, this tool
+displays dialog boxes for query and PIN, a progressbar and the
+result of the query in an info box.
+
+For a explanation of USSD queries, please take a look at 
+B<gsm-ussd(1)>.
+
+If running under GNOME it'll use zenity, under KDE it'll use
+kdialog. If not running under X there's a fall back to the
+command line version. In every other case it searches for
+kdialog or zenity and uses what's available.
+
+=head1 OPTIONS & ARGUMENTS
+
+All options are sent through to the underlying B<gsm-ussd(1)> call.
+Absolutely no option checking at all takes place in B<xussd(1)>!
+
+=head1 SEE ALSO
+
+B<gsm-ussd(1)>
+
+=head1 AUTHOR
+
+Jochen Gruse, L<mailto:jochen@zum-quadrat.de>
