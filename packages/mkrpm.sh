@@ -13,13 +13,16 @@ trap 'rm -rf rpm ; exit 0' 0
 # Create work directory
 mkdir -p rpm/SOURCES rpm/SPECS rpm/BUILD rpm/RPMS rpm/BUILDROOT rpm/SRPMS
 
+# Create tar archive as base for the rpm package
+./mktar.sh -r
+
 # Get project version and release
 VERSION=$( ./print_version.sh -v )
 RELEASE=$( ./print_version.sh -r )
 
 BASE_FILENAME="gsm-ussd_${VERSION}"
 SPEC_FILE="rpm/SPECS/${BASE_FILENAME}.spec"
-TAR_FILE="${BASE_FILENAME}-${RELEASE}.tar.gz"
+TAR_FILE="${BASE_FILENAME}.tar.gz"
 
 # Populate build directories with .{spec,tar.gz} files
 sed	-e '/^ *#/d' \

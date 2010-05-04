@@ -4,6 +4,9 @@
 # Description:	Creates a zipped tar archive out of the git repository.
 #		This script expects to be called from "make tar" out
 #		of the projects root directory!
+#		Setting option "-r" will suppress the release number
+#		for the tar file name and top level directory in the
+#		tar archive, suitable for mkrpm.sh.
 # Author:	Jochen Gruse <jochen@zum-quadrat.de>
 ########################################################################
 
@@ -48,9 +51,8 @@ done
 shift $(( OPTIND - 1 ))
 
 
-FULL_VERSION=$( ./print_version.sh )
 if [ $TAR_FOR_RPM -eq 0 ] ; then
-	VERSION=$FULL_VERSION
+	VERSION=$( ./print_version.sh -f )
 else
 	VERSION=$( ./print_version.sh -v )
 fi
@@ -60,6 +62,6 @@ BASE_FILENAME=gsm-ussd
 	cd ..
 	git archive --prefix="${BASE_FILENAME}_${VERSION}/" HEAD
 ) | \
-gzip -9 > ${BASE_FILENAME}_${FULL_VERSION}.tar.gz
+gzip -9 > ${BASE_FILENAME}_${VERSION}.tar.gz
 
 exit $EXIT_SUCCESS
