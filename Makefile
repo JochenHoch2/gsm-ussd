@@ -14,10 +14,12 @@ all:		doc
 install:	all
 	install -d $(BIN_PATH)
 	install gsm-ussd.pl $(BIN_PATH)/gsm-ussd
+	install xussd.sh $(BIN_PATH)/xussd
 
 doc:
 	pod2man --name GSM-USSD docs/en.pod > docs/en.man
 	pod2man --name GSM-USSD docs/de.pod > docs/de.man
+	# Add xussd manpage here
 
 install-doc:	doc
 	install docs/en.man $(MAN_PATH)/man1/gsm-ussd.1
