@@ -47,6 +47,12 @@ Dies ist das LIESMICH zu gsm-ussd. Vielen Dank für Ihr Interesse!
     Modems nehmen die Abfrage im Klartext entgegen und kümmern sich um
     das Kodieren/Dekodieren in der Firmware.
 
+    (UPDATE: Ein Thread im Debian-Forum verwies mich auf ussdq 
+    [http://sourceforge.net/projects/ussdq/], welches auf den ersten
+    Blick genau das leistet. Das Projekt ist leider nur im Source
+    verfügbar und mit Gambas entwickelt worden, was ich nicht kenne.
+    Die Erkundung läuft noch.)
+
     Und jedesmal, wenn ich die Karte wieder aufladen will oder nur
     einen Überblick über den Guthabenstand haben will, diese ausbauen
     und in ein Handy transferieren? Hmmmm..... Nö. B^)

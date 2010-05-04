@@ -43,6 +43,11 @@ script!
     more capable, modems take USSD queries in clear text and handle encoding
     in firmware.
 
+    (UPDATE: A thread in the German Debian-Forum got me a link to ussdq
+    [http://sourceforge.net/projects/ussdq/], which seems to fit my bill.
+    Sadly, no prebuilt binaries are available and it's a Gambas project,
+    which I'm not familiar with. Inquiries are continuing.)
+
     Well, of course I could always disassemble my UMTS stick, remove the SIM
     card, put it in my mobile, do what I need and then reverse the whole
     procedure.  But... Naaaah.... B^)
