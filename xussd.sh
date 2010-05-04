@@ -5,6 +5,7 @@
 # Author:	Jochen Gruse
 # External dependencies:	(Package)
 #		grep		(grep)
+#		sed		(sed)
 #		kdialog		(kdebase-bin)
 #		qdbus		(libqt4-dbus)
 #		zenity		(zenity)
