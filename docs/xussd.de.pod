@@ -1,0 +1,39 @@
+=encoding utf8
+
+=head1 NAME
+
+xussd - Simple GUI für gsm-ussd
+
+=head1 SYNOPSYS
+
+ xussd [<gsm-ussd Optionen>]
+
+=head1 DESCRIPTION
+
+Um auch der CLIphoben Anwenderschaft die Möglichkeit zu
+erschliessen, USSD-Abfragen zu stellen, zeigt dieses Programm
+Dialogfenster für USSD-Abfrage und PIN an, dann einen
+Fortschrittsbalken und zu guter Letzt ein Infofenster mit dem
+Ergebnis der Abfrage.
+
+Für nähere Informationen bezüglich USSD-Abfragen schlagen Sie 
+bitte in B<gsm-ussd(1)> nach.
+
+Unter GNOME verwendet das Programm zenity für die Dialogboxen,
+unter KDE verwendet es kdialog. Wenn es gar nicht unter X11 
+läuft, fällt es auch die normale Kommandozeilenversion von
+B<gsm-ussd(1)> zurück. In anderen Fällen sucht es nach kdialog
+und zenity un verwendet das verfügbare Werkzeug.
+
+=head1 OPTIONS & ARGUMENTS
+
+Alle Optionen werden ohne Behandlung an B<gsm-ussd(1)> weitergereicht.
+Es findet keinerlei Fehlerbehandlung in B<xussd(1)> statt!
+
+=head1 SEE ALSO
+
+B<gsm-ussd(1)>
+
+=head1 AUTHOR
+
+Jochen Gruse, L<mailto:jochen@zum-quadrat.de>

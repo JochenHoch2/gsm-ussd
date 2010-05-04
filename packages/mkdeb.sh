@@ -65,14 +65,19 @@ function copy_gsm-ussd_files {
 	(
 		set -e
 
-		# Binary
+		# Binaries
 		cp ../gsm-ussd.pl $BIN_PATH/gsm-ussd
+		cp ../xussd.sh $BIN_PATH/xussd
 
 		# Man pages
-		cp ../docs/en.man $MAN_EN_PATH/gsm-ussd.1
-		cp ../docs/de.man $MAN_DE_PATH/gsm-ussd.1
+		cp ../docs/gsm-ussd.en.man $MAN_EN_PATH/gsm-ussd.1
+		cp ../docs/gsm-ussd.de.man $MAN_DE_PATH/gsm-ussd.1
+		cp ../docs/xussd.en.man $MAN_EN_PATH/xussd.1
+		cp ../docs/xussd.de.man $MAN_DE_PATH/xussd.1
 		gzip --best $MAN_EN_PATH/gsm-ussd.1
 		gzip --best $MAN_DE_PATH/gsm-ussd.1
+		gzip --best $MAN_EN_PATH/xussd.1
+		gzip --best $MAN_DE_PATH/xussd.1
 		
 		# Supplementary docs
 		cp ../LICENSE $DOC_PATH/copyright
