@@ -80,7 +80,7 @@ shift $(( OPTIND - 1 ))
 if running_in_git_repo ; then
 	RELEASE=$(
 		git describe | \
-		sed -e 's/^v[^-]*-\([0-9]*\).*/\1/'
+		sed -e 's/^v[0-9.]*//' -e 's/-\([0-9]*\).*/\1/'
 	)
 	if [ -z "$RELEASE" ] ; then
 		RELEASE=0
