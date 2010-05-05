@@ -11,6 +11,23 @@
 #		zenity		(zenity)
 #		gsm-ussd	(gsm-ussd)
 ########################################################################
+# Copyright (C) 2010 Jochen Gruse, jochen@zum-quadrat.de
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# 
+########################################################################
 
 
 ########################################################################
@@ -99,13 +116,13 @@ function get_pin_kde {
 ########################################################################
 # Function:	show_progressbar_kde
 # Description:	Fakes a "progress" bar.
-#		You'll see progress every second. If gsm-ussd returns
-#		faster than in 20 seconds, the progress bar will be
-#		killed. It gsm-ussd times out, the progress bar will 
-#		run to 100% and then expire by itself or be killed.
-#		Worst case is an expiring progress bar, but gsm-ussd
-#		doesn't return for further 10 seconds because the PIN 
-#		had to be set...
+#		You'll see progress every second. This function will
+#		not end by itself, but has to be killed from outside,
+#		so only start it in the background.
+#		If the progressbar reaches 100% before being kill, it
+#		will slowly decrease back to 0% and begin again.
+#		Too bad that kdialog does not have a "--pulsate" option
+#		like zenity does!
 function show_progressbar_kde {
 	local -i MAX=20
         local -i COUNT=0
@@ -233,6 +250,8 @@ AVAILABLE_DIALOG_TOOLS=$(check_binaries $SUPPORTED_DIALOG_TOOLS)
 
 case $DESKTOP in 
 none)	# No X11, use command line program
+	# One might try dialog or whiptail, but in this case isn't it 
+	# better to just use gsm-ussd directly?
 	exec gsm-ussd $GSM_USSD_OPTS
 	# NOTREACHED
 	;;
@@ -243,6 +262,8 @@ unknown)
 	elif echo "$AVAILABLE_DIALOG_TOOLS" | grep -q zenity; then 
 		DESKTOP=gnome
 	else
+		# No supported dialog tool found, fall back to
+		# CLI version
 		exec gsm-ussd $GSM_USSD_OPTS
 		# NOTREACHED
 	fi
