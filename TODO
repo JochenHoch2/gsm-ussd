@@ -3,11 +3,6 @@ TODO
 
 This is just a collection of ideas. Care to comment?
 
-* Translate CME/CMS ERRORs, so that you'll get 
-	"Network error: No network service" 
-  instead of
-	"Network error: 30"
-
 * Query +CMEE, set it to 1 to receive CMS/CME ERROR messages,
   reset it to old value.
 
@@ -30,27 +25,11 @@ This is just a collection of ideas. Care to comment?
 
 * Some more research: Right now, I deal with USSD queries as 
   "one shot" commands. I send a query, receive an answer and that's 
-  it. But my docs suggest that more is possible:
-
-	In case of enabled presentation, a +CUSD (as direct answer
-	to a send USSD) is then indicated with:
-	+CUSD: <m> [,<str>,<dcs> ]
-
-	<m>
-	0:	no further user action required (network initiated
-		USSD-Notify, or no further information needed after
-		mobile initiated operation)
-	1:	further user action required (network initiated
-		USSD-Request, or further information needed after
-		mobile initiated operation)
-	2:	USSD terminated by network
-	4:	Operation not supported
-	<str> is network string, converted in the selected character set
-	<dcs> is the data coding scheme received (GSM TS 03.38).
-
-  As stated above, I don't even check m for different values (which I
-  should). Is there anybody out there that knows what this is 
-  used for and how it's done?
+  it. But my docs suggest that more is possible; have a look at
+  dev/ussd-response-types.txt.
+  There are applications being run via USSD codes. Sending a 
+  type 2 CUSD command cancels a USSD session, this might be 
+  interesting for someone.
 
 
 DONE
@@ -63,6 +42,14 @@ DONE
   for an even easier installation.
 
 * Added a small GUI, built around zenity and kdialog: xussd
+
+* CME/CMS ERRORs get translated now, so you'll get
+	"Network error: No network service" 
+  instead of
+	"Network error: 30"
+
+* USSD response types, while still not completely understood, will now
+  at least be reported in debug mode.
 
 
 NOT TO DO
@@ -83,6 +70,3 @@ These are things I will *not* consider doing to my poor script:
   pony only! 
 
 Jochen Gruse
-
-
-Jochen
