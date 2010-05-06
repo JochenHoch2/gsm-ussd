@@ -736,15 +736,23 @@ sub ussd_query_cmd {
 
 ########################################################################
 # Function: translate_gsm_error
-# Args:     $error_type "CMS ERROR" or "CME ERROR"
+# Args:     $error_type -  "CMS ERROR" or "CME ERROR"
 #           CME ERRORs are equipment related errors (missing SIM etc.)
 #           CMS ERRORs are network related errors
-# Returns:  An AT+CUSD command with properly encoded args
+#           $error_number - the error number to translate
+#           If the error number ist found not be a unsigned integer,
+#           it it returned as is - we were probably given a clear
+#           text error message
+# Returns:  The error message corresponding to the error number
+#           GSM error codes found at 
+#           http://www.activexperts.com/xmstoolkit/sms/gsmerrorcodes/
 sub translate_gsm_error {
     my ($error_type, $error_number) = @_;
     
     if ( $error_number !~ /^\d+$/ ) {
         # We have probably been given an already readable error message.
+        # The E160 is strange: Some error messages are english, some
+        # are plain numbers!
         return $error_number;
     }
     elsif ( exists $gsm_error{$error_type}{$error_number} ) {
