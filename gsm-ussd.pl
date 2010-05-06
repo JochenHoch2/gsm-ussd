@@ -559,35 +559,75 @@ sub do_ussd_query {
     my $result = send_command ( ussd_query_cmd($ussd_query, $use_cleartext), 'wait_for_cmd_answer' );
     if ( $result->{ok} ) {
         DEBUG ("USSD query successful, answer received");
-        my ($val1,$hexstring,$encoding) = $result->{description} =~ m/(\d+),"([^"]+)"(?:,(\d+))?/i;
-        if ( ! defined $val1 ) {
+        my ($response_type,$response,$encoding)
+            = $result->{description}
+            =~ m/
+                (\d+)           # Response type
+                (?:
+                    ,"([^"]+)"  # Response
+                    (?:
+                        ,(\d+)  # Encoding
+                    )?          # ... may be missing or ...
+                )?              # ... Response *and* Encoding may be missing
+            /ix;
+
+        if ( ! defined $response_type ) {
             # Didn't the RE match?
             DEBUG ("Couldn't parse CUSD message: \"", $result->{description}, "\"");
             return { ok => $fail, msg => "Couldn't understand modem answer: \"" . $result->{description} . "\"" };
         }
-        elsif ( ! defined $encoding ) {
-            DEBUG ("CUSD message has no encoding, interpreting as cleartext");
-            return { ok => $success, msg => $hexstring };
+        elsif ( $response_type == 0 ) {
+            DEBUG ("USSD response type: No further action required (0)");
         }
-        elsif ( $use_cleartext ) {
-            DEBUG ("Modem uses cleartext, interpreting message as cleartext");
-            return { ok => $success, msg => $hexstring };
+        elsif ( $response_type == 1 ) {
+            DEBUG ("USSD response type: Further action required (1)");
         }
-        elsif ( $encoding == 0 ) {
-            return { ok => $success, msg => hex_to_string( $hexstring ) };
+        elsif ( $response_type == 2 ) {
+            DEBUG ("USSD response type: USSD terminated by network (2)");
         }
-        elsif ( $encoding == 15 ) {
-            return { ok => $success, msg => decode_text( $hexstring ) };
+        elsif ( $response_type == 4 ) {
+            DEBUG ("USSD response type: Operation not supported (4)");
+        }
+        elsif ( $response_type == 5 ) {
+            DEBUG ("USSD response type: Network timeout (5) (?)");
         }
         else {
-            DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
-            return { ok => $success, msg => hex_to_string ($hexstring) };
+            DEBUG ("CUSD message has unknown response type \"$response_type\"");
         }
+        return interpret_ussd_data ($response, $encoding);
     }
     else {
         DEBUG ("USSD query failed, error: " . $result->{description});
         return { ok => $fail, msg => $result->{description} };
     }
+}
+
+
+########################################################################
+# Function: interpret_ussd_data
+########################################################################
+sub interpret_ussd_data {
+    my ($response, $encoding) = @_;
+
+    if ( ! defined $encoding ) {
+        DEBUG ("CUSD message has no encoding, interpreting as cleartext");
+        return { ok => $success, msg => $response };
+    }
+    elsif ( $use_cleartext ) {
+        DEBUG ("Modem uses cleartext, interpreting message as cleartext");
+        return { ok => $success, msg => $response };
+    }
+    elsif ( $encoding == 0 ) {
+        return { ok => $success, msg => hex_to_string( $response ) };
+    }
+    elsif ( $encoding == 15 ) {
+        return { ok => $success, msg => decode_text( $response ) };
+    }
+    else {
+        DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
+        return { ok => $success, msg => hex_to_string( $response ) };
+    }
+    # NOTREACHED
 }
 
 
