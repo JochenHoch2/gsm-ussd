@@ -585,11 +585,14 @@ sub do_ussd_query {
         elsif ( $response_type == 2 ) {
             DEBUG ("USSD response type: USSD terminated by network (2)");
         }
+        elsif ( $response_type == 3 ) {
+            DEBUG ("USSD response type: Other local client has responded (3)");
+        }
         elsif ( $response_type == 4 ) {
             DEBUG ("USSD response type: Operation not supported (4)");
         }
         elsif ( $response_type == 5 ) {
-            DEBUG ("USSD response type: Network timeout (5) (?)");
+            DEBUG ("USSD response type: Network timeout (5)");
         }
         else {
             DEBUG ("CUSD message has unknown response type \"$response_type\"");
