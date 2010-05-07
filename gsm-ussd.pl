@@ -581,6 +581,7 @@ sub do_ussd_query {
         }
         elsif ( $response_type == 1 ) {
             DEBUG ("USSD response type: Further action required (1)");
+            print STDERR "Please be advised that further action is required.\n";
         }
         elsif ( $response_type == 2 ) {
             DEBUG ("USSD response type: USSD terminated by network (2)");
