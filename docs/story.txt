@@ -4,8 +4,8 @@ Nur 'ne einfache Abfrage...
 Da ich jeden Arbeitstag eine gute Strecke im Zug pendele, ist mir mein
 Laptop zum ständigen Begleiter geworden.  Spielen, lesen, lernen,
 programmieren, schreiben geht mir mit ein wenig Musik auf den Ohren
-leicht von der Hand. Fehlt eigentlich nur noch die Möglichkeit, ein
-wenig surfen zu können. So ein UMTS-Stick wäre da schon eine schöne
+leicht von der Hand.  Fehlt eigentlich nur noch die Möglichkeit, ein
+wenig surfen zu können.  So ein UMTS-Stick wäre da schon eine schöne
 Sache - ein paar textlastige Info-Websites kann man ja schon
 aushilfsweise per Handy besuchen, aber warum mit einem
 Briefmarkendisplay begnügen, wenn man dem Browser auch 1280x800 Pixel
@@ -14,29 +14,29 @@ zur Verfügung stellen kann?
 Als Aldi den "Medion S4011 Surfstick" in ihr Sortiment aufnahm, dauerte
 es nur eine kleine Recherche lang (kein SIM-Lock, ist in Wirklichkeit
 ein Stick von Huawei und wird unter Linux unterstützt), bis ich meine
-Technikausstattung um ein UMTS-Modem erweiterte. Obwohl ich sonst mit
+Technikausstattung um ein UMTS-Modem erweiterte.  Obwohl ich sonst mit
 dem Prepaid-Tarif von Aldi (Medion Talk, E-Plus-Reseller) zufrieden bin,
-kaufte ich mir eine Congstar SIM dazu. Warum? Auf einigen
+kaufte ich mir eine Congstar SIM dazu.  Warum?  Auf einigen
 Streckenabschnitten ist die E-Plus-Netzabdeckung so schlecht, dass
-Telefonate zusammenbrechen. Da wollte ich mal testen, ob das D1-Netz auf
+Telefonate zusammenbrechen.  Da wollte ich mal testen, ob das D1-Netz auf
 der Strecke besser ausgebaut bzw. stabiler ist.
 
 Wie das Leben so spielt, hatte ich nun zwar den Stick, aber aus
 verschiedenen Gründen erst mal keine Zeit, damit auch wirklich zu
-basteln. Letzten Endes war die Inbetriebnahme unter Linux aber auch kein
+basteln.  Letzten Endes war die Inbetriebnahme unter Linux aber auch kein
 Riesenproblem: Unter Kubuntu 9.10 wird der Stick beim Einstecken erkannt
-und im knetworkmanager angeboten. Die Einrichtung des Zugangs war bis
+und im knetworkmanager angeboten.  Die Einrichtung des Zugangs war bis
 auf den knetworkmanager-Hirnschaden, dass man als Einwahlnummer nur
 "*99" eintragen darf ("**1#" ergänzt das Programm von alleine!), kein
-echtes Problem. So surfte ich denn ein wenig umher und war's zufrieden -
-für 35¢ pro MB, abgerechnet in 10K-Paketen. Nicht gerade billig, aber
-sooo viel Traffic wird man ja schon nicht verursachen. Apropos, wie ist
+echtes Problem.  So surfte ich denn ein wenig umher und war's zufrieden -
+für 35¢ pro MB, abgerechnet in 10K-Paketen.  Nicht gerade billig, aber
+sooo viel Traffic wird man ja schon nicht verursachen.  Apropos, wie ist
 eigentlich noch mein Guthaben auf der Karte?
 
 Auf dem Handy ist die Guthabenabfrage kein Problem: "*100#" ist bei so
-ziemliche jedem Prepaid-Tarif die Abfrage für's Restguthaben. Notfalls
+ziemliche jedem Prepaid-Tarif die Abfrage für's Restguthaben.  Notfalls
 kann man ja auch die Servicenummer anrufen und sich durch die Menüs
-arbeiten, aber so viel Geduld bringe ich normalerweise nicht auf. Aber
+arbeiten, aber so viel Geduld bringe ich normalerweise nicht auf.  Aber
 wie jetzt diese Abfrage mit dem UMTS-Stick stellen? 
 
 An dieser Stelle ergaben sich mehrere Möglichkeiten.
@@ -54,7 +54,7 @@ machen und den Ausgangszustand wieder herstellen.
 4. Forschen, wie der Stick funktioniert und dann sich selbst ein Tool
 dazu programmieren. 
 
-Selbstverständlich fiel "Lösung" Nr. 1 sofort flach. Schließlich wollte
+Selbstverständlich fiel "Lösung" Nr. 1 sofort flach.  Schließlich wollte
 ich ja nicht das Pferd von hinten aufzäumen.
 
 Lösung Nummer 2 hat mich einige Zeit gekostet, nur um einsehen zu
@@ -64,18 +64,18 @@ Das ansonsten sehr umfangreiche umtsmon hat Schwierigkeiten mit dem
 stellen. Jedoch war die Zeit, die ich in die Recherche dieser Tools
 steckte, nicht ganz verloren, da sich jede Menge Informationen zu
 USB-UMTS-Modems im Allgemeinen und Huawei-Modems im Speziellen finden
-ließ. Die wichtigsten Hinweise waren die Erläuterung, dass Code wie
+ließ.  Die wichtigsten Hinweise waren die Erläuterung, dass Code wie
 "*100#" USSD-Codes sind und dass ein UMTS-Modem genau das ist: Ein Modem
 wie anno dazumals und daher mittels AT-Befehlssatz zu steuern.
 
-Lösung Nummer 3 habe ich exakt einmal ausprobiert. Abgesehen von der
+Lösung Nummer 3 habe ich exakt einmal ausprobiert.  Abgesehen von der
 Tatsache, dass der Stick die SIM-Karte nur widerwillig hergegeben hat,
 musste ich sowohl den Stick als auch das Handy komplett zerlegen - für
 eine schnelle Guthabenabfrage im Zug vollkommen ausgeschlossen.
 
 Seufz. Da war ja noch Lösung Numero 4...
 
-Also erst mal etwas forschen. Steckt man den Stick an, schlägt sich das
+Also erst mal etwas forschen.  Steckt man den Stick an, schlägt sich das
 nach kurzer Zeit im Kernellog nieder:
 
 usb 2-3: new high speed USB device using ehci_hcd and address 10
@@ -96,39 +96,36 @@ sd 24:0:0:0: [sdb] Attached SCSI removable disk
 sr1: scsi-1 drive
 sr 23:0:0:0: Attached scsi generic sg3 type 5
 
-CD-ROM? Ach ja, das ZeroCD-Verfahren, bei dem der Stick dem Rechner
+CD-ROM?  Ach ja, das ZeroCD-Verfahren, bei dem der Stick dem Rechner
 vorgaukelt, es wäre ein Laufwerk mit eingelegtem Medium, um direkt
 Treiber und Software für die eigentliche Funktion des Sticks zur
-Verfügung zu stellen. Der MMC-Storage entspricht der Micro-SDHC-Karte,
-die am Stick eingesteckt werden kann. Um an die eigentliche
+Verfügung zu stellen.  Der MMC-Storage entspricht der Micro-SDHC-Karte,
+die am Stick eingesteckt werden kann.  Um an die eigentliche
 UMTS-Modem-Funktioninalität des Sticks zu gelangen, muss der Kernel
-diesen erst umschalten. Bei Kerneln vor Version 2.6.20(?) war dazu ein Programm
-wie usb_modeswitch, ozerocdoff oder huaweiAktBbo notwendig. 
-
-Der MMC-Storage ist eine Micro-SD-Karte, für die der Stick auch noch eine
-Schnittstelle hat. 
+diesen erst umschalten.  Bei Kerneln vor Version 2.6.20(?) war dazu ein
+Programm wie usb_modeswitch, ozerocdoff oder huaweiAktBbo notwendig. 
 
 Wie man an den "GSM-Modem converter now attached to ttyUSB0/1"-
 Meldungen erkennen kann, hat der Kernel den Stick bereits als UMTS-Modem
-erkannt und aktiviert. Warum aber stellt *ein* Stick *zwei* serielle
-Schnittstellen bereit? /dev/ttyUSB0 stellt den PPP-Port dar; hierüber
-laufen bei stehender Verbindung die Daten. /dev/ttyUSB1 dagegen ist der
+erkannt und aktiviert.  Warum aber stellt *ein* Stick *zwei* serielle
+Schnittstellen bereit?  /dev/ttyUSB0 stellt den PPP-Port dar; hierüber
+laufen bei stehender Verbindung die Daten.  /dev/ttyUSB1 dagegen ist der
 AT-Port, über den man dem Modem Anweisung erteilen kann oder davon
-Statusmeldung lesen kann. Was hier so simpel und einfach klingt, hat
-mich zu Beginn der Arbeit sicherlich zwei Stunden Zeit gekostet: Ein auf
+Statusmeldung lesen kann.  Was hier so simpel und einfach klingt, hat
+mich zu Beginn der Arbeit sicherlich zwei Stunden Zeit gekostet:  Ein auf
 /dev/ttyUSB0 eigegebenes Kommando gibt zwar noch das dazugehörige OK oder
 ERROR über den gleichen Port aus, aber das spätere Ergebnis einer
 Netzabfrage bekommt man nur auf /dev/ttyUSB1 zu sehen...
 
 Um also mit dem Modem in Kontakt zu treten, muss man das passende Device
 öffnen und kann dann darüber im Dialog Kommandos absetzen und die
-Antworten dazu auslesen. Das Tool der Wahl dazu war picocom, da es den
+Antworten dazu auslesen.  Das Tool der Wahl dazu war picocom, da es den
 Vorteil hat, sich vollkommen aus der Kommunikation zwischen
-Programmierer und Modem herauszuhalten. Lediglich eine Log-Funktion habe
+Programmierer und Modem herauszuhalten.  Lediglich eine Log-Funktion habe
 ich mir manchmal gewünscht, aber mit Copy&Paste gibt es einen einfachen
 Workaround.
 
-ALso frohen Mutes "picocom /dev/ttyUSB1" eingeben und - Kontakt! Alle
+ALso frohen Mutes "picocom /dev/ttyUSB1" eingeben und - Kontakt!  Alle
 paar Sekunden laufen Meldungen wie 
 
 ^BOOT:31610740,0,0,0,75
@@ -155,18 +152,18 @@ IMEI: 123456789012345
 OK
 
 Schön zu wissen: lsusb meldete das Modem als E220, da Huawei ein und
-dieselbe USB-ID für mehrere Modemserien verwendet... Na, denn mal die
+dieselbe USB-ID für mehrere Modemserien verwendet...  Na, denn mal die
 USSD-Abfrage stellen:
 
 AT+CUSD=1,"*100#",15
 ERROR
 
-Nanu? Laut Webrecherche und GSM-Standard hätte das klappen sollen. Den
+Nanu?  Laut Webrecherche und GSM-Standard hätte das klappen sollen. Den
 entscheidenden Hinweis brachte ein Thread im technischen Forum bei Huawei
 selbst: http://forum.huawei.com/jive4/thread.jspa?threadID=326991&tstart=0&orderStr=8
 
 Die für's Netzwerk nötige Umkodierung des Strings kann also ein E169 in
-der Firmware vornehmen, ein E160 dagegen nicht. Weitere Infos aus dem
+der Firmware vornehmen, ein E160 dagegen nicht.  Weitere Infos aus dem
 mwconn-Forum http://www.mwconn.info/viewtopic.php?f=4&t=91 und von
 nobbi.com http://www.nobbi.com/sms_pdu.html liessen das Bild dann klar
 werden.  Folgendes war zu programmieren:
@@ -180,28 +177,28 @@ werden.  Folgendes war zu programmieren:
 * Abfrage stellen und das Ergebnis erwarten
 * Das Ergebnis wieder dekodieren (entpacken, nach UTF-8 umsetzen)
 
-Und wieder einmal zeigte sich, dass blinder Aktionismus weh tut. Perl
+Und wieder einmal zeigte sich, dass blinder Aktionismus weh tut.  Perl
 bringt seit Version 5.8 das Modul Encoding mit, welches auch eine
-Konvertierung von/zu GSM03.38 beherrscht. Das habe ich aber erst
+Konvertierung von/zu GSM03.38 beherrscht.  Das habe ich aber erst
 herausgefunden (genauer gesagt - überhaupt danach gesucht), als ich
 eigene Routinen schon geschrieben hatte... 
 
-Die Kommunikation mit dem Modem erledigt das Modul Expect. Dieses Modul
+Die Kommunikation mit dem Modem erledigt das Modul Expect.  Dieses Modul
 implementiert die Funktionalität des TCL-Tools expect in Perl; man kann
 es sich als ein ultimativ flexibles Mittel zur Programmierung von
 Chat-Skripten vorstellen.
 
 Mit dieser Infrastruktur ist grundsätzlich schon eine gute Kommunikation
 mit dem Modem möglich, wenn da nicht noch das Umpacken der Daten in die
-Netzwerkrepräsentation wäre, die das E160 benötigt. Also noch ein wenig
+Netzwerkrepräsentation wäre, die das E160 benötigt.  Also noch ein wenig
 Bitschiebereien implementieren; das Packverfahren wird übrigens auf
 http://www.nobbi.com/sms_pdu.html unter "User Data:" prima dargestellt.
 
 Und dann kommen noch die äußeren Begleitumstände dazu: Da ich ja schon 
 immer mal den Umgang mit git oder Mercurial lernen wollte, gab dieses
-Projekt dafür das Versuchskaninchen ab. Und wenn nun auch andere an so 
+Projekt dafür das Versuchskaninchen ab.  Und wenn nun auch andere an so 
 einem Tool Interesse haben, dann sollte man auch direkt eine Website
 dazu anlegen, bei github.com ein öffentliches Repository anlegen, die
 Dokumentation nicht nur auf Deutsch, sondern auch auf Englisch schreiben,
-dabei auch Ausgaben & Kommentare auf Englisch umstellen... Die Liste
+dabei auch Ausgaben & Kommentare auf Englisch umstellen...  Die Liste
 ließe sich problemfrei noch erweitern.
