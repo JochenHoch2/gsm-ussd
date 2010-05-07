@@ -25,16 +25,26 @@ Tested Hardware
 	  MEDIONmobile (R) web stick S4011
 	  Tchibo Internet Stick
   Development of gsm-ussd happens on this type of modem
+
 * Ericsson-Modem of the Ideapad S10 3G (USB ID 0bdb:1900, /dev/ttyACM1)
   Thanks to Ulf (yeti at debianforum.de)!
+
+* Sony Ericsson K550i phone (USB ID 0fce:d069, /dev/ttyACM0)
+
 * Option GX301 (USB ID: 0af0:7011, /dev/ttyHS1), a.k.a.
 	  T-Mobile web'n'walk Card compact III
   Thanks to Ulf, too (yeti at debianforum.de)!
+
 * Option GT 3G Quad UMTS/GPRS Card (USB ID 0af0:6300, /dev/ttyUSB2)
   Thanks to guennid at debianforum.de
+
 * Option HSPA Express Data Card, Model E3730 (USB ID 0af0:7301, /dev/ttyHS1), a.k.a.
 	Vodafone Express Data Card
   Thanks to a colleague of mine!
+
+* Option GlobeTrotter HSDPA Modem (USB ID 0af0:6971, /dev/ttyHS1)
+  Thanks to a colleague of mine!
+
 * Not successfully tested: Huawei E870 (USB ID 12d1:1003, /dev/tty???)
   Card only came up with the ZeroCD-Image as /dev/sr1, no serial
   devices were created. No success with usb_modeswitch. Not enough
