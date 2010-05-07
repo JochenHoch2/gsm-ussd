@@ -373,7 +373,7 @@ if ( pin_needed() ) {
     }
     if ( enter_pin ($pin) ) {
         DEBUG ("Pin $pin accepted, waiting for 10 seconds");
-        # sleep 10;
+        sleep 10;
     }
     else {
         print STDERR "SIM card is locked, PIN $pin not accepted!\n";
