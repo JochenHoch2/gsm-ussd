@@ -26,6 +26,11 @@ Tested Hardware
 	  Tchibo Internet Stick
   Development of gsm-ussd happens on this type of modem
 
+* Huawei E1550 (USB ID ????:????, /dev/ttyUSB2)
+  Thanks to Tomasz from Polonia!
+
+May be? * Huawei E165G (USB ID ????:????, /dev/ttyUSB?) 
+
 * Ericsson-Modem of the Ideapad S10 3G (USB ID 0bdb:1900, /dev/ttyACM1)
   Thanks to Ulf (yeti at debianforum.de)!
 

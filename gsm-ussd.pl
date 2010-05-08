@@ -318,6 +318,13 @@ my %gsm_error = (
         }
 );
 
+# This is a list of modems that need the PDU format for query
+# As of now, these are all Huaweis...
+my @pdu_modems = (
+    'E160',
+    'E165G',
+    'E1550',
+);
 
 ########################################################################
 # Main
@@ -352,12 +359,13 @@ if ( ! defined $modem_model ) {
     $modem_model = '';
 }
 if ( ! defined $use_cleartext ) {
-    if ( $modem_model !~ /^E160/ ) {
-        DEBUG ("Modem is not a Huawei E160, switching to cleartext");
-        $use_cleartext = 1;
+    if ( modem_needs_pdu_format ( $modem_model ) ) {
+        DEBUG ("Modem type \"$modem_model\" needs PDU format for USSD query.");
+        $use_cleartext = 0;
     }
     else {
-        $use_cleartext = 0;
+        DEBUG ("Modem type \"$modem_model\" needs cleartext for USSD query.");
+        $use_cleartext = 1;
     }
 }
 else {
@@ -541,6 +549,23 @@ sub enter_pin {
         DEBUG ("SIM card still locked, error: ", $result->{description});
         return 0;
     }
+}
+
+
+########################################################################
+# Function: modem_needs_pdu_format
+# Args:     $model - The model type reported by the modem
+# Returns:  0   -   Modem type needs cleartext USSD query
+#           1   -   Modem type needs PDU format
+sub modem_needs_pdu_format {
+    my ($model) = @_;
+
+    foreach my $modem (@pdu_modems) {
+        if ( $model eq $modem ) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 
