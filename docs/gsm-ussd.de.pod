@@ -101,17 +101,13 @@ Liste der interessanten Dinge:
 
 =over
 
-=item * B<*100#>
-
-Bei bisher allen mir bekannten Prepaid-Anbietern funktionierender
-USSD-Code zur Guthabenabfrage auf der Karte. B<Default>, wenn kein
-USSD-Code beim Aufruf mitgegeben wird. Alle weiteren Codes sind, auch
-wenn es zwischen den Providern gelegentlich Überschneidungen
-gibt, grundsätzlich B<nicht> portabel!
-
 =item * Telecom/D1
 
 =over
+
+=item * B<*100#>
+
+Guthabenabfrage.
 
 =item * B<< *101*I<cashcode># >>
 
@@ -129,15 +125,47 @@ Anzeige der eigenen Telefonnummer.
 
 =over
 
-=item B<*102#>
+=item * B<*100#>
+
+Guthabenabfrage.
+
+=item * B<*102#>
 
 Ausgabe der Kosten der letzten Verbindung.
+
+=back
+
+=item * O2 $ Reseller (Tchibo, ...)
+
+=over
+
+=item * B<*100#>
+
+Übersicht über weitere USSD-Codes
+
+=item * B<*101#>
+
+Guthabenabfrage.
+
+=item * B<*102#>
+
+Abfrage der Gültigkeitsdauer des Guthabens.
+
+=item * B<*103*I<cashcode>#>
+
+Aufladen einer Prepaid-Karte bei O2. Bitte beachten, dass der Aufladecode
+nur aus Ziffern besteht und eventuelle andere Zeichen nur zur Gruppierung
+dienen!
 
 =back
 
 =item * E-Plus & Reseller
 
 =over
+
+=item * B<*100#>
+
+Guthabenabfrage.
 
 =item * B<*104*I<cashcode>#>
 
