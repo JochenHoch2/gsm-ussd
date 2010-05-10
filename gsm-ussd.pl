@@ -46,6 +46,9 @@ my $expect_logfilename  = undef;            # Filename to log the modem dialog i
 my $pin                 = undef;            # Value for option PIN
 my @all_args            = @ARGV;            # Backup of args to print them for debug
 
+my $num_net_reg_retries = 10;               # Number of retries if modem is not already
+                                            # registered in a net
+
 # Consts
 my $success = 1;
 my $fail    = 0;
@@ -382,8 +385,7 @@ if ( pin_needed() ) {
         exit 1;
     }
     if ( enter_pin ($pin) ) {
-        DEBUG ("Pin $pin accepted, waiting for 10 seconds");
-        # sleep 10;
+        DEBUG ("Pin $pin accepted.");
     }
     else {
         print STDERR "SIM card is locked, PIN $pin not accepted!\n";
@@ -392,7 +394,11 @@ if ( pin_needed() ) {
     }
 }
 
-wait_for_net_registration( 10 );
+my $net_is_available = get_net_registration_state ( $num_net_reg_retries );
+if ( ! $net_is_available ) {
+    print STDERR "Sorry, no network seems to be available.\n";
+    exit 1;
+}
 
 my $ussd_result = do_ussd_query ();
 if ( $ussd_result->{ok} ) {
@@ -557,16 +563,19 @@ sub enter_pin {
 
 
 ########################################################################
-# Function: wait_for_net_registration
+# Function: get_net_registration_state
 # Args:     $max_tries - Number of tries 
-sub wait_for_net_registration {
-    my ($max_tries) = @_;
-    my $tries = 0;
+# Returns:  0 - No net available
+#           1 - Modem is registered in a net
+sub get_net_registration_state {
+    my ($max_tries)                     = @_;
+    my $num_tries                       = 1;
+    my $wait_time_between_net_checks    = 2;
 
     DEBUG ("Waiting for net registration, max $max_tries tries");
-    while ($tries < $max_tries) {
-        DEBUG ("Try: $tries");
-        my $result = send_command ( 'AT+CREG?', 'wait_for_ok' );
+    while ($num_tries <= $max_tries) {
+        DEBUG ("Try: $num_tries");
+        my $result = send_command ( 'AT+CREG?', 'wait_for_OK' );
         if ( $result->{ok} ) {
             DEBUG ('Net registration query result received, parsing');
             my ($n, $stat) = $result->{description} =~ m/\+CREG:\s+(\d),(\d)/i;
@@ -605,8 +614,8 @@ sub wait_for_net_registration {
             return 0;
         }
         DEBUG ("Sleeping for 2 seconds");
-        sleep 2;
-        ++ $tries;
+        sleep $wait_time_between_net_checks;
+        ++ $num_tries;
     }
     return 0;
 }
@@ -745,6 +754,12 @@ sub interpret_ussd_data {
 #                       arg $how_to_react
 sub send_command {
     my ($cmd, $how_to_react)	= @_;
+
+    if ( ! exists $expect_programs{$how_to_react} ) {
+        print STDERR "This should not have happened - unknown expect program \"$how_to_react\" wanted!\n";
+        print STDERR "This is a bug, please report!\n";
+        exit 1;
+    }
 
     DEBUG ("Sending command: $cmd");
     $expect->send("$cmd\015");
