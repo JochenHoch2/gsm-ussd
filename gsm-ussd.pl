@@ -318,6 +318,7 @@ my %gsm_error = (
         }
 );
 
+
 # This is a list of modems that need the PDU format for query
 # As of now, these are all Huaweis...
 my @pdu_modems = (
@@ -325,6 +326,7 @@ my @pdu_modems = (
     'E165G',
     'E1550',
 );
+
 
 ########################################################################
 # Main
@@ -336,7 +338,7 @@ binmode (STDOUT, ':utf8');
 check_modemport ($modemport);
 
 DEBUG ("Opening modem");
-if ( ! open MODEM, '+<', $modemport ) {
+if ( ! open MODEM, '+<:raw', $modemport ) {
     print STDERR "Modem port \"$modemport\" seems in order, but cannot open it anyway:\n$!\n";
     exit 1;
 }
@@ -381,7 +383,7 @@ if ( pin_needed() ) {
     }
     if ( enter_pin ($pin) ) {
         DEBUG ("Pin $pin accepted, waiting for 10 seconds");
-        sleep 10;
+        # sleep 10;
     }
     else {
         print STDERR "SIM card is locked, PIN $pin not accepted!\n";
@@ -389,6 +391,8 @@ if ( pin_needed() ) {
         exit 1;
     }
 }
+
+wait_for_net_registration( 10 );
 
 my $ussd_result = do_ussd_query ();
 if ( $ussd_result->{ok} ) {
@@ -549,6 +553,62 @@ sub enter_pin {
         DEBUG ("SIM card still locked, error: ", $result->{description});
         return 0;
     }
+}
+
+
+########################################################################
+# Function: wait_for_net_registration
+# Args:     $max_tries - Number of tries 
+sub wait_for_net_registration {
+    my ($max_tries) = @_;
+    my $tries = 0;
+
+    DEBUG ("Waiting for net registration, max $max_tries tries");
+    while ($tries < $max_tries) {
+        DEBUG ("Try: $tries");
+        my $result = send_command ( 'AT+CREG?', 'wait_for_ok' );
+        if ( $result->{ok} ) {
+            DEBUG ('Net registration query result received, parsing');
+            my ($n, $stat) = $result->{description} =~ m/\+CREG:\s+(\d),(\d)/i;
+            if ( ! defined $n || ! defined $stat) {
+                DEBUG ('Cannot parse +CREG answer: ' . $result->{description});
+                return 0;
+            }
+            if ( $stat == 0 ) {
+                DEBUG ('Not registered, MT not searching a new operator to register to');
+                return 0;
+            }
+            elsif ( $stat == 1 ) {
+                DEBUG ('Registered, home network');
+                return 1;
+            }
+            elsif ( $stat == 2 ) {
+                DEBUG ('Not registered, currently searching new operator to register to');
+            }
+            elsif ( $stat == 3) {
+                DEBUG ('Registration denied');
+                return 0;
+            }
+            elsif ( $stat == 4) {
+                DEBUG ('Registration state unknown');
+            }
+            elsif ( $stat == 5 ) {
+                DEBUG ('Registered, roaming');
+                return 1;
+            }
+            else {
+                DEBUG ("Cannot understand net reg state code $stat");
+            }
+        }
+        else {
+            DEBUG ('Querying net registration failed, error: ' . $result->{description});
+            return 0;
+        }
+        DEBUG ("Sleeping for 2 seconds");
+        sleep 2;
+        ++ $tries;
+    }
+    return 0;
 }
 
 
