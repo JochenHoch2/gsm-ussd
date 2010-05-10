@@ -86,8 +86,8 @@ my %expect_programs = (
             => \&ignore_state_line
         ],
         # Identify +CREG status message
-        # (+CREG modem answer has got two arguments "\d+, \d+"!)
-        [ qr/\r\n(\+CREG):[ ]*(\d+)\r\n/i
+        # (+CREG modem answer has got two arguments "\d,\d"!)
+        [ qr/\r\n(\+CREG):[ ]*(\d)\r\n/i
             => \&ignore_state_line
         ],
         # Fail states of the modem (network lost, SIM problems, ...)
@@ -95,7 +95,7 @@ my %expect_programs = (
             => \&network_error
         ],
         # AT command (TTY echo of input)
-        [ qr/^AT([^\r\n]*)/i
+        [ qr/^AT([^\r\n]*)\r/i
             =>  sub {
                     my $exp = shift;
                     DEBUG("AT found, -> ",$exp->match() );
@@ -120,7 +120,7 @@ my %expect_programs = (
         ],
         # Identify +CREG status message
         # (+CREG modem answer has got two arguments "\d+, \d+"!)
-        [ qr/\r\n(\+CREG):[ ]*(\d+)\r\n/i
+        [ qr/\r\n(\+CREG):[ ]*(\d)\r\n/i
             => \&ignore_state_line
         ],
         # Fail states of the modem (network lost, SIM problems, ...)
@@ -140,7 +140,7 @@ my %expect_programs = (
             }
         ],
         # AT command (TTY echo of input)
-        [ qr/^AT([^\r\n]*)/i
+        [ qr/^AT([^\r\n]*)\r/i
             =>  sub {
                     my $exp = shift;
                     DEBUG("AT found, -> ",$exp->match() );
