@@ -6,10 +6,6 @@ This is just a collection of ideas. Care to comment?
 * Query +CMEE, set it to 1 to receive CMS/CME ERROR messages,
   reset it to old value.
 
-* Instead of a fixed waiting time for the modem to find its net
-  after unlocking the SIM, poll it regularly until it reports 
-  that it has found its net.
-
 * Add another option "-v|--verbose", which will query and output
   modem type, net the modem is logged into and other trivia.
 
@@ -50,6 +46,11 @@ DONE
 
 * USSD response types, while still not completely understood, will now
   at least be reported in debug mode.
+
+* After the PIN check/unlocking, gsm-ussd now polls the network
+  registration every two seconds for ten times until it runs out
+  of tries (and aborts) or it receives messages that the modem
+  finally registered in its home net or roaming.
 
 
 NOT TO DO
