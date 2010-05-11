@@ -394,9 +394,9 @@ if ( pin_needed() ) {
     }
 }
 
-my $net_is_available = get_net_registration_state ( $num_net_reg_retries );
+my ( $net_is_available, $reason)  = get_net_registration_state ( $num_net_reg_retries );
 if ( ! $net_is_available ) {
-    print STDERR "Sorry, no network seems to be available.\n";
+    print STDERR "Sorry, no network seems to be available:\n$reason\n";
     exit 1;
 }
 
@@ -571,6 +571,7 @@ sub get_net_registration_state {
     my ($max_tries)                     = @_;
     my $num_tries                       = 1;
     my $wait_time_between_net_checks    = 2;
+    my $last_state_message              = '';
 
     DEBUG ("Waiting for net registration, max $max_tries tries");
     while ($num_tries <= $max_tries) {
@@ -580,44 +581,53 @@ sub get_net_registration_state {
             DEBUG ('Net registration query result received, parsing');
             my ($n, $stat) = $result->{description} =~ m/\+CREG:\s+(\d),(\d)/i;
             if ( ! defined $n || ! defined $stat) {
-                DEBUG ('Cannot parse +CREG answer: ' . $result->{description});
-                return 0;
+                my $last_state_message = 'Cannot parse +CREG answer: ' . $result->{description}; 
+                DEBUG ( $last_state_message );
+                return ( 0, $last_state_message );
             }
             if ( $stat == 0 ) {
-                DEBUG ('Not registered, MT not searching a new operator to register to');
-                return 0;
+                my $last_state_message = 'Not registered, MT not searching a new operator to register to';
+                DEBUG ( $last_state_message );
+                return ( 0, $last_state_message );
             }
             elsif ( $stat == 1 ) {
-                DEBUG ('Registered, home network');
-                return 1;
+                my $last_state_message = 'Registered, home network';
+                DEBUG ( $last_state_message );
+                return ( 1, $last_state_message );
             }
             elsif ( $stat == 2 ) {
-                DEBUG ('Not registered, currently searching new operator to register to');
+                my $last_state_message = 'Not registered, currently searching new operator to register to';
+                DEBUG ( $last_state_message );
             }
             elsif ( $stat == 3) {
-                DEBUG ('Registration denied');
-                return 0;
+                my $last_state_message = 'Registration denied'; 
+                DEBUG ( $last_state_message );
+                return ( 0, $last_state_message );
             }
             elsif ( $stat == 4) {
-                DEBUG ('Registration state unknown');
+                my $last_state_message = 'Registration state unknown';
+                DEBUG ( $last_state_message );
             }
             elsif ( $stat == 5 ) {
-                DEBUG ('Registered, roaming');
-                return 1;
+                my $last_state_message = 'Registered, roaming';
+                DEBUG ( $last_state_message );
+                return ( 1, $last_state_message );
             }
             else {
-                DEBUG ("Cannot understand net reg state code $stat");
+                my $last_state_message = "Cannot understand net reg state code $stat";
+                DEBUG ( $last_state_message );
             }
         }
         else {
-            DEBUG ('Querying net registration failed, error: ' . $result->{description});
-            return 0;
+            my $last_state_message = 'Querying net registration failed, error: ' . $result->{description}; 
+            DEBUG ( $last_state_message );
+            return ( 0, $last_state_message );
         }
         DEBUG ("Sleeping for 2 seconds");
         sleep $wait_time_between_net_checks;
         ++ $num_tries;
     }
-    return 0;
+    return ( 0, "No net registration in $max_tries tries found, last result:\n$last_state_message" );
 }
 
 
