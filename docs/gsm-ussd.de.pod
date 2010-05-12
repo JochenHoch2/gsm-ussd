@@ -7,12 +7,12 @@ gsm-ussd - USSD-Abfragen über ein GSM/UMTS-Modem senden
 =head1 SYNOPSYS
 
  gsm-ussd --help|-h|-?
- gsm-ussd [-m <modem>] [-t <timeout>] [-p <pin>] [-d] [-l <logfile>] [<ussd-cmd>]
+ gsm-ussd [-m <modem>] [-t <timeout>] [-p <pin>] [-d] [-l <logfile>] [<ussd-cmd>...]
 
 =head1 DESCRIPTION
 
 Das Skript schickt an einen Port, hinter dem ein GSM-Modem sitzen
-sollte, ein USSD-Kommando und wartet auf die Antwort, die dann bei
+sollte, USSD-Kommandos und wartet auf die Antwort, die dann bei
 Eintreffen ausgegeben wird. 
 
 =head1 OPTIONS
@@ -92,7 +92,8 @@ jeweilige Aktion liefert.
 Ein USSD-Kommando ist eine Ziffernfolge, die das GSM-Netz zu tollen
 Dingen veranlasst. Per Default wird das Kommando C<*100#> gesendet,
 welches alle mir bekannten Netze dazu veranlasst, den Guthabenstand
-des Prepaid-Kontos zu melden.
+des Prepaid-Kontos zu melden. Man kann auch mehrere USSD-Abfragen 
+angeben, die hintereinander abgearbeitet werden.
 
 Bitte beachten: Grundsätzlich sind die USSD-Codes für jeden Anbieter
 unterschiedlich! 
@@ -135,7 +136,7 @@ Ausgabe der Kosten der letzten Verbindung.
 
 =back
 
-=item * O2 $ Reseller (Tchibo, ...)
+=item * O2 & Reseller (Tchibo, ...)
 
 =over
 
