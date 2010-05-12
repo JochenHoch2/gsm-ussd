@@ -17,8 +17,6 @@ This is just a collection of ideas. Care to comment?
   messages. Of course, the actual translation (apart from English
   and German) would have to be done by someone else...
 
-* Check the USSD query for legal characters first: /^\*[0-9*]+#$/
-
 * Some more research: Right now, I deal with USSD queries as 
   "one shot" commands. I send a query, receive an answer and that's 
   it. But my docs suggest that more is possible; have a look at
@@ -51,6 +49,14 @@ DONE
   registration every two seconds for ten times until it runs out
   of tries (and aborts) or it receives messages that the modem
   finally registered in its home net or roaming.
+
+* Checks the USSD queries for legal characters first: /^\*[0-9*]+#$/
+
+* More than one USSD query will now be done if several are given on
+  the command line. Every USSD query result will be printed on its 
+  own line. 
+  Up to v0.2.2, you *could* enter more than one query, but all but the
+  first were ignored.
 
 
 NOT TO DO
