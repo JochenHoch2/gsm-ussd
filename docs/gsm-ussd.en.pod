@@ -7,7 +7,7 @@ gsm-ussd - Send USSD queries by GSM/UMTS modem
 =head1 SYNOPSYS
 
  gsm-ussd --help|-h|-?
- gsm-ussd [-m <modem>] [-t <timeout>] [-p <pin>] [-d] [-l <logfile>] [<ussd-cmd>]
+ gsm-ussd [-m <modem>] [-t <timeout>] [-p <pin>] [-d] [-l <logfile>] [<ussd-cmd>...]
 
 =head1 DESCRIPTION
 
@@ -89,11 +89,14 @@ and their results in high detail.
 
 =head1 ARGUMENTS
 
-A USSD query is a "phone number" starting with "*1" and ending with 
+A USSD query is a "phone number" starting with "*" and ending with 
 "#" which let's you do interesting things in a GSM network.
 By default, if you don't specify any USSD query, C<*100#> will be
 used, which causes all GSM network providers known to me to provide
 the balance of your prepaid account.
+
+If you enter more than one USSD query, they will be sent in order and
+the result of each on its own line.
 
 Please note: USSD queries are different for each provider!
 
@@ -101,23 +104,20 @@ List of interesting things:
 
 =over
 
-=item * B<*100#>
-
-This works with all GSM network providers that I know of (which,
-admittedly, doesn't say much). Shows your prepaid account balance.
-B<Default>, if no other USSD query is given on the command line.
-Basically, USSD queries are B<not> portable between networks, but this
-one seems to be a convention every network adheres to. 
-
 =item * German Telecom/D1
 
 =over
 
+=item * B<*100#>
+
+Show prepaid account balance.
+
 =item * B<< *101*I<cashcode># >>
 
-Replenish your prepaid account with a "Cashcode". Please note that a
-cash code consists only of numbers! Dashes in your cash code are simply
-used for readability, don't enter them. Use only the numbers.
+Top up your prepaid account with a "Cashcode" (top up code). Please
+note that a cash code consists only of numbers! Dashes in your cash
+code are simply used for readability, don't enter them. Use only the
+numbers.
 
 =item * B<*135#>
 
@@ -125,9 +125,37 @@ Displays your own phone number.
 
 =back
 
+=item * O2 & Reseller (Tchibo, ...)
+
+=over
+
+=item * B<*100#>
+
+Overview about other USSD-Codes.
+
+=item * B<*101#>
+
+Show prepaid account balance.
+
+=item * B<*102#>
+
+Prepaid account validity.
+
+=item * B<*103*I<topupcode>#>
+
+Topping up your prepaid account. Please note that a top up code consists
+of numbery only! Dashes in your top up code are simply used for 
+readability - don't enter them. Use only the numbers.
+
+=back
+
 =item * Vodafone/D2
 
 =over
+
+=item * B<*100#>
+
+Show prepaid account balance.
 
 =item B<*102#>
 
@@ -139,11 +167,15 @@ Displays costs of your last connection.
 
 =over
 
+=item * B<*100#>
+
+Show prepaid account balance.
+
 =item * B<*104*I<cashcode>#>
 
-Replenish your prepaid account with a "Cashcode". Please note that a
-cash code consists only of numbers! Dashes in your cash code are simply
-used for readability, don't enter them. Use only the numbers.
+Top up your prepaid account with a "Cashcode" (top up code). Please note
+that a cash code consists only of numbers! Dashes in your cash code are
+simply used for readability, don't enter them. Use only the numbers.
 
 This works for the E-Plus net, not only for the E-Plus provider. So you
 can use this USSD query for E-Plus resellers (AldiTalk, Simyo, Blue, ...)
