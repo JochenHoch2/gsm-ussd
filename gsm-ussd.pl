@@ -37,7 +37,7 @@ use Encode qw(encode decode);
 our $VERSION            = '0.2.2';          # Our version
 my $modemport           = '/dev/ttyUSB1';   # AT port of a Huawei E160 modem
 my $timeout_for_answer  = 20;               # Timeout for modem answers in seconds
-my $ussd_query          = '*100#';          # Prepaid account query
+my @ussd_queries        = ( '*100#' );      # Prepaid account query as default
 my $use_cleartext       = undef;            # Need to encode USSD query?
 my $show_online_help    = 0;                # Option flag online help
 my $debug               = 0;                # Option flag debug mode
@@ -72,7 +72,7 @@ if ( $show_online_help ) {
 
 # Further arguments are USSD queries
 if ( @ARGV != 0 ) {
-    $ussd_query = $ARGV[0];
+    @ussd_queries = @ARGV;
 }
 
 # The Expect programs differ in the way they react to modem answers
@@ -400,13 +400,19 @@ if ( ! $net_is_available ) {
     exit 1;
 }
 
-my $ussd_result = do_ussd_query ();
-if ( $ussd_result->{ok} ) {
-    print $ussd_result->{msg}, $/;
-}
-else {
-    print STDERR $ussd_result->{msg}, $/;
-    exit 1;
+for my $ussd_query ( @ussd_queries ) {
+    if ( ! is_valid_ussd_query ( $ussd_query ) ) {
+        print STDERR "\"$ussd_query\" is not a valid USSD query - ignored.\n";
+        next;
+    }
+    my $ussd_result = do_ussd_query ( $ussd_query );
+    if ( $ussd_result->{ok} ) {
+        print $ussd_result->{msg}, $/;
+    }
+    else {
+        print STDERR $ussd_result->{msg}, $/;
+        # exit 1;
+    }
 }
 
 DEBUG ("Closing modem");
@@ -649,6 +655,20 @@ sub modem_needs_pdu_format {
 
 
 ########################################################################
+# Function: is_valid_ussd_query
+# Args:     $query - The USSD query to check
+# Returns:  0   -   Query contains illegal characters
+#           1   -   Query is legal
+sub is_valid_ussd_query {
+    my ( $query ) = @_;
+    if ( $query =~ m/^\*[0-9*]+#$/ ) {
+        return 1;
+    }
+    return 0;
+}
+
+
+########################################################################
 # Function: do_ussd_query
 # Args:     None.
 # Returns:  Hashref 
@@ -658,9 +678,10 @@ sub modem_needs_pdu_format {
 #           Key 'msg':  Error message or USSD query result, in accordance
 #                       to the value of 'ok'.
 sub do_ussd_query {
+    my ( $query ) = @_;
 
-    DEBUG ("Starting USSD query");
-    my $result = send_command ( ussd_query_cmd($ussd_query, $use_cleartext), 'wait_for_cmd_answer' );
+    DEBUG ("Starting USSD query \"$query\"");
+    my $result = send_command ( ussd_query_cmd($query, $use_cleartext), 'wait_for_cmd_answer' );
     if ( $result->{ok} ) {
         DEBUG ("USSD query successful, answer received");
         my ($response_type,$response,$encoding)
