@@ -179,6 +179,38 @@ einzugeben sind!
 
 =back 
 
+=head1 EXIT CODE VALUES
+
+C<gsm-ussd(1)> setzt den Exitcode wie folgt:
+
+=over
+
+=item *
+
+0 - Erfolgreiche USSD-Abfrage
+
+=item *
+
+1 - SIM ist gesperrt, PIN wird benötigt
+
+=item *
+
+2 - Falsche PIN eingegeben, SIM immer noch gesperrt
+
+=item *
+
+3 - Kein Netz verfügbar
+
+=item *
+
+4 - Fehler bei der Abfrage aufgetreten (Timeouts u.ä.)
+
+=item *
+
+10 - Fehler im Programm. Dieser Exitcode sollte niemals auftreten.
+
+=back
+
 =head1 AUTHOR
 
 Jochen Gruse, L<mailto:jochen@zum-quadrat.de>

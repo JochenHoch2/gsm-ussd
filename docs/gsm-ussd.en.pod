@@ -185,6 +185,38 @@ too.
 
 =back 
 
+=head1 EXIT CODE VALUES
+
+C<gsm-ussd(1)> sets its exit code as follows:
+
+=over
+
+=item *
+
+0 - Successful USSD query
+
+=item *
+
+1 - SIM  is locked, PIN needed
+
+=item *
+
+2 -  Wrong PIN given, SIM still locked
+
+=item *
+
+3 - No net registration
+
+=item *
+
+4 - Error ocurred (Timeouts etc.)
+
+=item *
+
+10 - Bug in program. This exit code should never be seen.
+
+=back
+
 =head1 AUTHOR
 
 Jochen Gruse, L<mailto:jochen@zum-quadrat.de>

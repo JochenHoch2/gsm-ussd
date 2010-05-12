@@ -50,8 +50,15 @@ my $num_net_reg_retries = 10;               # Number of retries if modem is not 
                                             # registered in a net
 
 # Consts
-my $success = 1;
-my $fail    = 0;
+my $success         =  1;
+my $fail            =  0;
+my $exit_success    =  0;
+my $exit_nopin      =  1;
+my $exit_wrongpin   =  2;
+my $exit_nonet      =  3;
+my $exit_error      =  4;
+my $exit_bug        = 10;
+
 
 # Parse options and react to them
 GetOptions (
@@ -343,7 +350,7 @@ check_modemport ($modemport);
 DEBUG ("Opening modem");
 if ( ! open MODEM, '+<:raw', $modemport ) {
     print STDERR "Modem port \"$modemport\" seems in order, but cannot open it anyway:\n$!\n";
-    exit 1;
+    exit $exit_error;
 }
 
 DEBUG ("Initialising Expect");
@@ -356,7 +363,7 @@ if ( ! check_for_modem() ) {
     print STDERR "No modem found at device \"$modemport\". Possible causes:\n";
     print STDERR "* Wrong modem device (use -m <dev>?)\n";
     print STDERR "* Modem broken (no reaction to AT)\n";
-    exit 1;
+    exit $exit_error;
 }
 
 my $modem_model = get_modem_model();
@@ -382,7 +389,7 @@ if ( pin_needed() ) {
     if ( ! defined $pin ) {
         print STDERR "SIM card is locked, but no PIN to unlock given.\n";
         print STDERR "Use \"-p <pin>\"!\n";
-        exit 1;
+        exit $exit_nopin;
     }
     if ( enter_pin ($pin) ) {
         DEBUG ("Pin $pin accepted.");
@@ -390,14 +397,14 @@ if ( pin_needed() ) {
     else {
         print STDERR "SIM card is locked, PIN $pin not accepted!\n";
         print STDERR "Start me again with the correct PIN!\n";
-        exit 1;
+        exit $exit_wrongpin;
     }
 }
 
 my ( $net_is_available, $reason)  = get_net_registration_state ( $num_net_reg_retries );
 if ( ! $net_is_available ) {
     print STDERR "Sorry, no network seems to be available:\n$reason\n";
-    exit 1;
+    exit $exit_nonet;
 }
 
 for my $ussd_query ( @ussd_queries ) {
@@ -411,7 +418,6 @@ for my $ussd_query ( @ussd_queries ) {
     }
     else {
         print STDERR $ussd_result->{msg}, $/;
-        # exit 1;
     }
 }
 
@@ -419,7 +425,7 @@ DEBUG ("Closing modem");
 close MODEM;
 
 DEBUG ("End");
-exit 0;
+exit $exit_success;
 
 ########################################################################
 # Subs
@@ -437,7 +443,7 @@ sub check_modemport {
         print STDERR "* Modem not plugged in/connected\n";
         print STDERR "* Modem broken\n";
         print STDERR "Perhaps use another device with -m?\n";
-        exit 1;
+        exit $exit_error;
     }
 
     if ( ! -c $mp ) {
@@ -445,21 +451,21 @@ sub check_modemport {
         print STDERR "* Wrong device file given (-m ?)\n";
         print STDERR "* Device file broken?\n";
         print STDERR "Please check!\n";
-        exit 1;
+        exit $exit_error;
     }
 
     if ( ! -r $mp ) {
         print STDERR "Can't read from device \"$mp\".\n";
         print STDERR "Set correct rights for \"$mp\" with chmod?\n";
         print STDERR "Perhaps use another device with -m?\n";
-        exit 1;
+        exit $exit_error;
     }
 
     if ( ! -w $mp ) {
         print STDERR "Can't write to device \"$mp\".\n";
         print STDERR "Set correct rights for \"$mp\" with chmod?\n";
         print STDERR "Perhaps use another device with -m?\n";
-        exit 1;
+        exit $exit_error;
     }
 }
 
@@ -661,10 +667,11 @@ sub modem_needs_pdu_format {
 #           1   -   Query is legal
 sub is_valid_ussd_query {
     my ( $query ) = @_;
+
     if ( $query =~ m/^\*[0-9*]+#$/ ) {
-        return 1;
+        return $success;
     }
-    return 0;
+    return $fail;
 }
 
 
@@ -789,7 +796,7 @@ sub send_command {
     if ( ! exists $expect_programs{$how_to_react} ) {
         print STDERR "This should not have happened - unknown expect program \"$how_to_react\" wanted!\n";
         print STDERR "This is a bug, please report!\n";
-        exit 1;
+        exit $exit_bug;
     }
 
     DEBUG ("Sending command: $cmd");
@@ -970,7 +977,7 @@ sub gsm0338_to_utf8 {
     if ( $@ ) {
         print STDERR "Converting GSM0338->UTF-8 failed: $@\n";
         print STDERR "This shouldn't have happened at all!";
-        exit 1;
+        exit $exit_bug;
     }
     return $utf8;
 }
@@ -989,7 +996,7 @@ sub utf8_to_gsm0338 {
     if ( $@ ) {
         print STDERR "Converting UTF-8->GSM0338 failed: $@\n";
         print STDERR "Please check the USSD query for illegal characters!\n";
-        exit 1;
+        exit $exit_error;   # Perhaps $exit_bug? 
     }
     return $gsm0338;
 }

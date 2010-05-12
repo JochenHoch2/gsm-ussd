@@ -1,6 +1,6 @@
 #!/bin/bash
 ########################################################################
-# Script:	ussd.sh
+# Script:	xussd.sh
 # Description:	Prototype of a GUI for gsm-ussd
 # Author:	Jochen Gruse
 # External dependencies:	(Package)
@@ -87,6 +87,19 @@ function escape_markup {
 
 
 ########################################################################
+# Function:	get_pin
+# Description:	Queries PIN and returns PIN oder empty string
+function get_pin {
+	local PIN=$( get_pin_$DESKTOP )
+	if [ $? -ne 0 ] ; then
+		return 1
+	fi
+	echo "$PIN"
+	return 0
+}
+
+
+########################################################################
 # KDE functions
 ########################################################################
 
@@ -97,7 +110,7 @@ function escape_markup {
 function get_ussd_query_kde {
 	kdialog \
 	--title "$TITLE" \
-	--inputbox 'Please enter the USSD query you would like to send:' '*100#' \
+	--inputbox 'Please enter the USSD query you would like to send:' "$1" \
 	2>&-
 }
 
@@ -108,7 +121,7 @@ function get_ussd_query_kde {
 function get_pin_kde {
 	kdialog \
 	--title "$TITLE" \
-	--password 'Please enter your PIN for your SIM card. If no PIN is needed, leave blank.' \
+	--password 'Please enter your PIN for your SIM card.' \
 	2>&-
 }
 
@@ -150,22 +163,24 @@ function show_progressbar_kde {
 
 
 ########################################################################
-# Function:	show_result_kde
-# Description:	Creates a kdialog info box to show the USSD query result
-function show_result_kde {
-	if [ "$1" -ne 0 ] ; then
-		local DIALOG_TYPE="--error"
-	else
-		local DIALOG_TYPE="--msgbox"
-	fi
-	kdialog --title "$TITLE" $DIALOG_TYPE "$2"
+# Function:	show_error_kde
+# Description:	Creates a kdialog error box
+function show_error_kde {
+	kdialog --title "$TITLE" --error "$1"
+}
+
+
+########################################################################
+# Function:	show_info_kde
+# Description:	Creates a kdialog info box
+function show_info_kde {
+	kdialog --title "$TITLE" -msgbox "$1"
 }
 
 
 ########################################################################
 # GNOME functions
 ########################################################################
-
 
 ########################################################################
 # Function:	get_ussd_query_gnome
@@ -175,7 +190,7 @@ function get_ussd_query_gnome {
 	--title "$TITLE" \
 	--entry \
 	--text 'Please enter the USSD query you would like to send:' \
-	--entry-text '*100#' \
+	--entry-text "$1" \
 	2>&-
 }
 
@@ -187,7 +202,7 @@ function get_pin_gnome {
 	zenity \
 	--title "$TITLE" \
 	--entry \
-	--text 'Please enter your PIN for your SIM card. If no PIN is needed, leave blank.' \
+	--text 'Please enter your PIN for your SIM card.' \
 	--hide-text \
 	2>&-
 }
@@ -218,17 +233,20 @@ function show_progressbar_gnome {
 
 
 ########################################################################
-# Function:	show_result_gnome
-# Arguments:	$1 - Exit code of gsm-ussd
-#		$2 - Message to display
-# Description:	Creates a zenity info box to show the USSD query result
-function show_result_gnome {
-	if [ "$1" -ne 0 ] ; then
-		local DIALOG_TYPE="--error"
-	else
-		local DIALOG_TYPE="--info"
-	fi
-	zenity --title "$TITLE" $DIALOG_TYPE --text "$(echo "$2" | escape_markup )"
+# Function:	show_error_gnome
+# Arguments:	$1 - Message to display
+# Description:	Creates a zenity error box
+function show_error_gnome {
+	zenity --title "$TITLE" --error --text "$(echo "$1" | escape_markup )"
+}
+
+
+########################################################################
+# Function:	show_info_gnome
+# Arguments:	$1 - Message to display
+# Description:	Creates a zenity info box
+function show_info_gnome {
+	zenity --title "$TITLE" --info --text "$(echo "$1" | escape_markup )"
 }
 
 
@@ -241,6 +259,8 @@ TITLE=${0##*/}
 
 # Any options are given over to gsm-ussd. No checking done here!
 GSM_USSD_OPTS="$@"
+#GSM_USSD='gsm-ussd';	# Normalfall
+GSM_USSD='./gsm-ussd.pl';	# Test im lokalen Repo
 
 SUPPORTED_DIALOG_TOOLS="kdialog zenity"
 
@@ -263,7 +283,7 @@ unknown)
 		DESKTOP=gnome
 	else
 		# No supported dialog tool found, fall back to
-		# CLI version
+		# CLI version, maybe someone opened a xterm for us
 		exec gsm-ussd $GSM_USSD_OPTS
 		# NOTREACHED
 	fi
@@ -271,42 +291,62 @@ unknown)
 esac
 
 
-# -p/--pin already given? Then we don't have to ask by dialog box
-# This is only an approximation, the legal grouping
-#	-cdp 1234
-# is not recognized
-PIN_NEEDED=1
-if echo "$GSM_USSD_OPTS" | grep -Eq -- '-p|--pin' ; then
-	PIN_NEEDED=0
-fi
 
-# Ask for USSD query, set "*100#" as default
-USSD_QUERY=$( get_ussd_query_$DESKTOP )
-if [ $? -ne 0 ] ; then
-	exit 1
-fi
+# Ask for USSD query
+# Set "*100#" as default query
+USSD_QUERY='*100#'
 
-# Ask for PIN, if needed
-PIN_OPT=""
-if [ $PIN_NEEDED -eq 1 ] ; then
-	PIN=$( get_pin_$DESKTOP)
-	if [ $? -eq 0 -a -n "$PIN" ] ; then
-		PIN_OPT="-p $PIN"
+# No PIN while running for the first time
+PIN_OPT=''
+
+while true ; do
+
+	USSD_QUERY=$( get_ussd_query_$DESKTOP $USSD_QUERY )
+	if [ $? -ne 0 ] ; then
+		exit 1
 	fi
-fi
 
-# Start the progress bar display
-show_progressbar_$DESKTOP &
-PROGRESS_PID=$!
+	# Start the progress bar display
+	show_progressbar_$DESKTOP &
+	PROGRESS_PID=$!
 
-# Do the actual work
-RESULT=$( gsm-ussd $PIN_OPT $GSM_USSD_OPTS "$USSD_QUERY" 2>&1 )
-GSM_USSD_EXITCODE=$?
+	# Do the actual work
+	RESULT=$( $GSM_USSD $PIN_OPT $GSM_USSD_OPTS "$USSD_QUERY" 2>&1 )
+	GSM_USSD_EXITCODE=$?
 
-# End progress bar display (if not already gone)
-kill $PROGRESS_PID >&- 2>&-
+	# End progress bar display (if not already gone)
+	kill $PROGRESS_PID >&- 2>&-
+
+	case $GSM_USSD_EXITCODE in
+		1)	PIN=$( get_pin )
+			if [ -z "$PIN" ] ; then
+				# Dialog cancelled or nothing entered
+				RESULT="Pin needed, but none provided."
+				break;
+			fi
+			PIN_OPT="-p $PIN"
+			;;
+		2)	show_error_$DESKTOP "$RESULT"
+			PIN=$( get_pin )
+			if [ -z "$PIN" ] ; then
+				# Dialog cancelled or nothing entered
+				RESULT="Pin needed, but none provided."
+				break;
+			fi
+			PIN_OPT="-p $PIN"
+			;;
+		*)	break
+			;;
+	esac
+	# Retry with new PIN
+done
 
 # Show gsm-ussd result in appropiate dialog box
-show_result_$DESKTOP "$GSM_USSD_EXITCODE" "$RESULT"
 
-exit 0
+if [ $GSM_USSD_EXITCODE -eq 0 ] ; then
+	show_info_$DESKTOP "$RESULT"
+else
+	show_error_$DESKTOP "$RESULT"
+fi
+
+exit $GSM_USSD_EXITCODE

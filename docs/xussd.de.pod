@@ -12,9 +12,12 @@ xussd - Simple GUI für gsm-ussd
 
 Um auch der CLIphoben Anwenderschaft die Möglichkeit zu
 erschliessen, USSD-Abfragen zu stellen, zeigt dieses Programm
-Dialogfenster für USSD-Abfrage und PIN an, dann einen
+ein Dialogfenster für die USSD-Abfrage an, dann einen
 Fortschrittsbalken und zu guter Letzt ein Infofenster mit dem
 Ergebnis der Abfrage.
+
+Sollte eine PIN notwendig sein, wird diese nach dem ersten
+Versuch nachgefragt.
 
 Für nähere Informationen bezüglich USSD-Abfragen schlagen Sie 
 bitte in B<gsm-ussd(1)> nach.
@@ -23,7 +26,7 @@ Unter GNOME verwendet das Programm zenity für die Dialogboxen,
 unter KDE verwendet es kdialog. Wenn es gar nicht unter X11 
 läuft, fällt es auch die normale Kommandozeilenversion von
 B<gsm-ussd(1)> zurück. In anderen Fällen sucht es nach kdialog
-und zenity un verwendet das verfügbare Werkzeug.
+und zenity und verwendet das verfügbare Werkzeug.
 
 =head1 OPTIONS & ARGUMENTS
 

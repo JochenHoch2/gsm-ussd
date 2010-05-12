@@ -11,8 +11,10 @@ xussd - Simple GUI for gsm-ussd
 =head1 DESCRIPTION
 
 To make USSD queries available for the CLI adverse, this tool
-displays dialog boxes for query and PIN, a progressbar and the
+displays a dialog box for the query, a progressbar and the
 result of the query in an info box.
+
+If a PIN is needed, it will be queried for a second try.
 
 For a explanation of USSD queries, please take a look at 
 B<gsm-ussd(1)>.
