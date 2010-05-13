@@ -2,6 +2,10 @@
 ########################################################################
 # vim: set expandtab sw=4 ts=4 ai nu: 
 ########################################################################
+# Script:       gsm-ussd
+# Description:  Send USSD queries via GSM modem
+# Dependencies: stty (coreutils)
+########################################################################
 # Copyright (C) 2010 Jochen Gruse, jochen@zum-quadrat.de
 #
 # This program is free software; you can redistribute it and/or modify
@@ -353,6 +357,9 @@ if ( ! open MODEM, '+<:raw', $modemport ) {
     exit $exit_error;
 }
 
+my $stty_value = save_serial_opts ($modemport);
+set_serial_opts ( $modemport, '-icrnl' );
+
 DEBUG ("Initialising Expect");
 $expect	= Expect->exp_init(\*MODEM);
 if (defined $expect_logfilename) {
@@ -421,6 +428,8 @@ for my $ussd_query ( @ussd_queries ) {
     }
 }
 
+load_serial_opts ($modemport, $stty_value);
+
 DEBUG ("Closing modem");
 close MODEM;
 
@@ -467,6 +476,63 @@ sub check_modemport {
         print STDERR "Perhaps use another device with -m?\n";
         exit $exit_error;
     }
+}
+
+
+########################################################################
+# Function: save_serial_opts
+# Args:     $serial_device  -   The device to remember the stty values of
+# Returns:  String containing all serial opts as is
+#           Empty String in case of errors
+sub save_serial_opts {
+    my ($serial_device) = @_;
+    
+    DEBUG ("Saving serial state of $serial_device");
+    my $serial_opts = `stty -F $serial_device -g`;
+    if ( $? << 8 != 0 || ! defined $serial_opts ) {
+        DEBUG ('No serial state found!');
+        return '';
+    }
+    return $serial_opts;
+}
+
+
+########################################################################
+# Function: load_serial_opts
+# Args:     $serial_device  -   The device to remember the stty values of
+#           $opts           -   stty values to set
+# Returns:  1               -   State successfully set
+#           0               -   State could not be loaded
+sub load_serial_opts {
+    my ($serial_device, $opts) = @_;
+    
+    DEBUG ("Loading serial state for $serial_device");
+    my $stty_out = `stty -F $serial_device $opts 2>&1`;
+    if ( $? << 8 != 0 ) {
+        DEBUG ("No reload possible: $stty_out");
+        return 0;
+    }
+    return 1;
+}
+
+
+########################################################################
+# Function: set_serial_opts
+# Args:     $serial_device  -   The device to set the stty values for
+#           @opts           -   stty values to set
+# Returns:  1               -   Success
+#           0               -   Failure
+sub set_serial_opts {
+    my ($serial_device, @opts) = @_;
+    
+    DEBUG ("Setting serial state for $serial_device:", @opts);
+    my $opts = join (' ', @opts);
+    my $stty_out = `stty -F $serial_device $opts 2>&1`;
+    if ( $? << 8 != 0 ) {
+        DEBUG ("Set serial state failed: $stty_out");
+        return 0;
+    }
+    return 1;
 }
 
 
