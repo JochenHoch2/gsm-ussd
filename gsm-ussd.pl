@@ -351,14 +351,14 @@ binmode (STDOUT, ':utf8');
 
 check_modemport ($modemport);
 
+my $stty_value = save_serial_opts ($modemport);
+set_serial_opts ( $modemport, '-icrnl', '-echo' );
+
 DEBUG ("Opening modem");
 if ( ! open MODEM, '+<:raw', $modemport ) {
     print STDERR "Modem port \"$modemport\" seems in order, but cannot open it anyway:\n$!\n";
     exit $exit_error;
 }
-
-my $stty_value = save_serial_opts ($modemport);
-set_serial_opts ( $modemport, '-icrnl' );
 
 DEBUG ("Initialising Expect");
 $expect	= Expect->exp_init(\*MODEM);
