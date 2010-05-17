@@ -441,13 +441,18 @@ for my $ussd_query ( @ussd_queries ) {
 }
 
 DEBUG ("Shutting down");
-exit $exit_success;
+exit $exit_success; # will give control to END
 
 
 ########################################################################
 # Subs
 ########################################################################
-# Set up cleanup code
+
+########################################################################
+# Function: END
+# Purpose:  Check for resources in use and free them
+# Args:     None
+# Returns:  Nothing. Will be called after exit().
 END {
     DEBUG ("END: Cleaning up");
     my $exitcode = $?;  # Save it, as load_serial_opts uses ``
@@ -462,8 +467,15 @@ END {
     $? = $exitcode;
 }
 
+
+########################################################################
+# Function: clean_exit
+# Purpose:  This is the signal handler for SIGINT & SIGTERM
+# Args:     $signal - Name of the caught signal
+# Returns:  Nothing, just exits giving control to the END cleanup
 sub clean_exit {
     my ($signal) = @_;
+
     if ($signal eq 'INT' ) {
         DEBUG ("INT caught, terminating");
         exit 128 + 2;
@@ -472,8 +484,11 @@ sub clean_exit {
         DEBUG ("TERM caught, terminating");
         exit 128 + 15; 
     }
-    DEBUG ("Signal $signal caught, terminating");
-    exit 128 + $exit_bug;
+    else {
+        DEBUG ("Signal $signal caught, terminating. This should not have happened.");
+        exit $exit_bug;
+    }
+    # NOTREACHED
 }
 
 
