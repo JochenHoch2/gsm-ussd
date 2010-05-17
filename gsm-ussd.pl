@@ -42,7 +42,10 @@ our $VERSION            = '0.2.2';          # Our version
 my $modemport           = '/dev/ttyUSB1';   # AT port of a Huawei E160 modem
 my $timeout_for_answer  = 20;               # Timeout for modem answers in seconds
 my @ussd_queries        = ( '*100#' );      # Prepaid account query as default
-my @stty_settings       = ( 'raw' );        # Stty settings for modem interface
+my @stty_settings       = (
+                            'raw',
+                            '-echo'
+                          );                # Stty settings for modem interface
 my $use_cleartext       = undef;            # Need to encode USSD query?
 my $use_echo            = 1;                # Set echo for stty?
 my $show_online_help    = 0;                # Option flag online help
@@ -72,7 +75,6 @@ GetOptions (
     'timeout|t=i'	=>	\$timeout_for_answer,
 	'pin|p=s'       =>	\$pin,
     'cleartext|c!'  =>  \$use_cleartext,
-    'echo|e!'       =>  \$use_echo,
     'debug|d'       =>  \$debug,
     'logfile|l=s'	=>	\$expect_logfilename,
     'help|h|?'      =>	\$show_online_help,
@@ -82,13 +84,6 @@ or pod2usage(-verbose => 0);
 # Online help wanted?
 if ( $show_online_help ) {
     pod2usage(-verbose => 1);
-}
-
-if ( $use_echo ) {
-    push @stty_settings, 'echo' ;
-}
-else {
-    push @stty_settings, '-echo' ;
 }
 
 # Further arguments are USSD queries
@@ -383,6 +378,8 @@ if ( ! check_for_modem() ) {
     exit $exit_error;
 }
 
+set_modem_echo (1);
+
 my $modem_model = get_modem_model();
 if ( ! defined $modem_model ) {
     $modem_model = '';
@@ -570,6 +567,37 @@ sub check_for_modem {
 
 
 ########################################################################
+# Function: set_modem_echo
+# Args:     true    -   Echo on
+#           false   -   Echo off
+# Returns:  0   -   Success
+#           1   -   Fail 
+sub set_modem_echo {
+    my ($echo_on) = @_;
+    my $modem_echo_command = '';
+
+    if ($echo_on) {
+        $modem_echo_command = 'ATE1';
+        DEBUG ("Enabling modem echo ($modem_echo_command)");
+    }
+    else {
+        $modem_echo_command = 'ATE0';
+        DEBUG ("Disabling modem echo ($modem_echo_command)");
+    }
+
+    my $result = send_command ( $modem_echo_command, 'wait_for_OK' );
+    if ( $result->{ok} ) { 
+        DEBUG ("$modem_echo_command successful");
+        return 1;
+    }   
+    else {
+        DEBUG ("$modem_echo_command failed, error: $result->{description}");
+        return 0;
+    }   
+}
+
+
+########################################################################
 # Function: get_modem_model
 # Args:     None
 # Returns:  String  Name of the modem model
@@ -658,7 +686,7 @@ sub enter_pin {
 sub get_net_registration_state {
     my ($max_tries)                     = @_;
     my $num_tries                       = 1;
-    my $wait_time_between_net_checks    = 2;
+    my $wait_time_between_net_checks    = 3;
     my $last_state_message              = '';
 
     DEBUG ("Waiting for net registration, max $max_tries tries");
@@ -711,7 +739,7 @@ sub get_net_registration_state {
             DEBUG ( $last_state_message );
             return ( 0, $last_state_message );
         }
-        DEBUG ("Sleeping for 2 seconds");
+        DEBUG ("Sleeping for $wait_time_between_net_checks seconds");
         sleep $wait_time_between_net_checks;
         ++ $num_tries;
     }
