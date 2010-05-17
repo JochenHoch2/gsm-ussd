@@ -356,7 +356,7 @@ binmode (STDOUT, ':utf8');
 
 check_modemport ($modemport);
 
-my $stty_value = save_serial_opts ($modemport);
+my $saved_stty_value = save_serial_opts ($modemport);
 set_serial_opts ( $modemport, @stty_settings );
 
 DEBUG ("Opening modem");
@@ -435,8 +435,6 @@ for my $ussd_query ( @ussd_queries ) {
     }
 }
 
-load_serial_opts ($modemport, $stty_value);
-
 DEBUG ("Closing modem");
 close MODEM;
 
@@ -446,6 +444,16 @@ exit $exit_success;
 ########################################################################
 # Subs
 ########################################################################
+# Set up cleanup code
+END {
+    DEBUG ("In END");
+    my $exitcode = $?;  # Save it, as load_serial_opts uses ``
+    if ( defined $saved_stty_value && $saved_stty_value ne '' ) {
+        load_serial_opts($modemport, $saved_stty_value);
+    }
+    $? = $exitcode;
+}
+
 
 ########################################################################
 # Function: check_modemport
