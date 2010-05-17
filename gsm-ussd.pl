@@ -92,6 +92,10 @@ if ( @ARGV != 0 ) {
     @ussd_queries = @ARGV;
 }
 
+# Set up signal handler for INT and TERM
+$SIG{'INT'}     = \&clean_exit;
+$SIG{'TERM'}    = \&clean_exit;
+
 # The Expect programs differ in the way they react to modem answers
 my %expect_programs = (
     # wait_for_OK:  The modem will react with OK/ERROR/+CM[SE] ERROR
@@ -456,6 +460,20 @@ END {
         load_serial_opts($modemport, $saved_stty_value);
     }
     $? = $exitcode;
+}
+
+sub clean_exit {
+    my ($signal) = @_;
+    if ($signal eq 'INT' ) {
+        DEBUG ("INT caught, terminating");
+        exit 128 + 2;
+    }
+    elsif ($signal eq 'TERM' ) {
+        DEBUG ("TERM caught, terminating");
+        exit 128 + 15; 
+    }
+    DEBUG ("Signal $signal caught, terminating");
+    exit 128 + $exit_bug;
 }
 
 
