@@ -3,6 +3,8 @@ TODO
 
 This is just a collection of ideas. Care to comment?
 
+* Rip out use of `stty ...`, use POSIX qw(:termios_h) instead.
+
 * Query +CMEE, set it to 1 to receive CMS/CME ERROR messages,
   reset it to old value.
 
