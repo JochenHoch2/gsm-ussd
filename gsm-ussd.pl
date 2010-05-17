@@ -40,6 +40,7 @@ use Encode qw(encode decode);
 
 our $VERSION            = '0.2.2';          # Our version
 my $modemport           = '/dev/ttyUSB1';   # AT port of a Huawei E160 modem
+my $modem_fh            = undef;
 my $timeout_for_answer  = 20;               # Timeout for modem answers in seconds
 my @ussd_queries        = ( '*100#' );      # Prepaid account query as default
 my @stty_settings       = (
@@ -360,13 +361,13 @@ my $saved_stty_value = save_serial_opts ($modemport);
 set_serial_opts ( $modemport, @stty_settings );
 
 DEBUG ("Opening modem");
-if ( ! open MODEM, '+<:raw', $modemport ) {
+if ( ! open $modem_fh, '+<:raw', $modemport ) {
     print STDERR "Modem port \"$modemport\" seems in order, but cannot open it anyway:\n$!\n";
     exit $exit_error;
 }
 
 DEBUG ("Initialising Expect");
-$expect	= Expect->exp_init(\*MODEM);
+$expect	= Expect->exp_init($modem_fh);
 if (defined $expect_logfilename) {
     $expect->log_file($expect_logfilename, 'w');
 }
@@ -435,20 +436,23 @@ for my $ussd_query ( @ussd_queries ) {
     }
 }
 
-DEBUG ("Closing modem");
-close MODEM;
-
-DEBUG ("End");
+DEBUG ("Shutting down");
 exit $exit_success;
+
 
 ########################################################################
 # Subs
 ########################################################################
 # Set up cleanup code
 END {
-    DEBUG ("In END");
+    DEBUG ("END: Cleaning up");
     my $exitcode = $?;  # Save it, as load_serial_opts uses ``
+    if ( defined $modem_fh) {
+        DEBUG ("END: Closing modem interface");
+        close $modem_fh;
+    }
     if ( defined $saved_stty_value && $saved_stty_value ne '' ) {
+        DEBUG ("END: Resetting serial interface");
         load_serial_opts($modemport, $saved_stty_value);
     }
     $? = $exitcode;
