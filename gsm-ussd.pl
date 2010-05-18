@@ -38,7 +38,7 @@ use Encode qw(encode decode);
 # Init
 ########################################################################
 
-our $VERSION            = '0.2.2';          # Our version
+our $VERSION            = '0.2.3';          # Our version
 my $modemport           = '/dev/ttyUSB1';   # AT port of a Huawei E160 modem
 my $modem_fh            = undef;
 my $timeout_for_answer  = 20;               # Timeout for modem answers in seconds
