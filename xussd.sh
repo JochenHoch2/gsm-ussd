@@ -259,8 +259,8 @@ TITLE=${0##*/}
 
 # Any options are given over to gsm-ussd. No checking done here!
 GSM_USSD_OPTS="$@"
-#GSM_USSD='gsm-ussd';	# Normalfall
-GSM_USSD='./gsm-ussd.pl';	# Test im lokalen Repo
+GSM_USSD='gsm-ussd';		# Production
+# GSM_USSD='./gsm-ussd.pl';	# Testcase in the local repo
 
 SUPPORTED_DIALOG_TOOLS="kdialog zenity"
 
