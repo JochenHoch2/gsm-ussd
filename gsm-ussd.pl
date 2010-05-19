@@ -48,6 +48,7 @@ my @stty_settings       = (
                             '-echo'
                           );                # Stty settings for modem interface
 my $use_cleartext       = undef;            # Need to encode USSD query?
+my $cancel_ussd_session = 0;                # User wants to cancel an ongoing USSD session
 my $show_online_help    = 0;                # Option flag online help
 my $debug               = 0;                # Option flag debug mode
 my $expect              = undef;            # The Expect object
@@ -74,7 +75,8 @@ GetOptions (
     'modem|m=s'     =>	\$modemport,
     'timeout|t=i'	=>	\$timeout_for_answer,
 	'pin|p=s'       =>	\$pin,
-    'cleartext|c!'  =>  \$use_cleartext,
+    'cleartext!'    =>  \$use_cleartext,
+    'cancel|c'      =>  \$cancel_ussd_session,
     'debug|d'       =>  \$debug,
     'logfile|l=s'	=>	\$expect_logfilename,
     'help|h|?'      =>	\$show_online_help,
