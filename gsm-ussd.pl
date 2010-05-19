@@ -48,7 +48,6 @@ my @stty_settings       = (
                             '-echo'
                           );                # Stty settings for modem interface
 my $use_cleartext       = undef;            # Need to encode USSD query?
-my $use_echo            = 1;                # Set echo for stty?
 my $show_online_help    = 0;                # Option flag online help
 my $debug               = 0;                # Option flag debug mode
 my $expect              = undef;            # The Expect object
