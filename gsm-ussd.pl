@@ -865,20 +865,31 @@ sub do_ussd_query {
             print STDERR "Please be advised that further action is required.\n";
         }
         elsif ( $response_type == 2 ) {
-            DEBUG ("USSD response type: USSD terminated by network (2)");
+            my $msg = "USSD response type: USSD terminated by network (2)";
+            DEBUG ($msg);
+            return { ok => $fail, msg => $msg };
         }
         elsif ( $response_type == 3 ) {
-            DEBUG ("USSD response type: Other local client has responded (3)");
+            my $msg = ("USSD response type: Other local client has responded (3)");
+            DEBUG ($msg);
+            return { ok => $fail, msg => $msg };
         }
         elsif ( $response_type == 4 ) {
-            DEBUG ("USSD response type: Operation not supported (4)");
+            my $msg = ("USSD response type: Operation not supported (4)");
+            DEBUG ($msg);
+            return { ok => $fail, msg => $msg };
         }
         elsif ( $response_type == 5 ) {
-            DEBUG ("USSD response type: Network timeout (5)");
+            my $msg = "USSD response type: Network timeout (5)";
+            DEBUG ($msg);
+            return { ok => $fail, msg => $msg };
         }
         else {
-            DEBUG ("CUSD message has unknown response type \"$response_type\"");
+            my $msg = "CUSD message has unknown response type \"$response_type\"";
+            DEBUG ($msg);
+            return { ok => $fail, msg => $msg };
         }
+        # Only reached if USSD response type is 0 or 1
         return interpret_ussd_data ($response, $encoding);
     }
     else {
