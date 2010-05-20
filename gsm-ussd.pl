@@ -1321,6 +1321,7 @@ gsm-ussd
 
  gsm-ussd --help|-h|-?
  gsm-ussd [-m <modem>] [-t <timeout>] [-p <pin>] [<ussd-cmd>]
+ gsm-ussd [-m <modem>] [-t <timeout>] -c
 
 =head1 OPTIONS AND ARGUMENTS
 
@@ -1343,7 +1344,7 @@ each command sent to the modem.  Default is B<20> seconds.
 
 The SIM PIN, if the card is still locked.
 
-=item B<--cleartext|-c>
+=item B<--cleartext>
 
 This option causes gsm-ussd to send USSD queries in cleartext, i.e.
 without encoding them into a 7bit-packed-hex-string.
@@ -1364,7 +1365,11 @@ Writes the chat between modem and script into the named log file.
 =item B<--debug|-d>
 
 Switches debug mode on. The script will then explain its actions
-and their results in high detail.
+
+=item B<--cancel|-c>
+
+Sends a command to cancel any ongoing USSD session. Cancelling 
+while no session is active does no harm.
 
 =back
 

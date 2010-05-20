@@ -8,6 +8,7 @@ gsm-ussd - Send USSD queries by GSM/UMTS modem
 
  gsm-ussd --help|-h|-?
  gsm-ussd [-m <modem>] [-t <timeout>] [-p <pin>] [-d] [-l <logfile>] [<ussd-cmd>...]
+ gsm-ussd [-m <modem>] [-t <timeout>] [-d] [-l <logfile>] --cancel|-c
 
 =head1 DESCRIPTION
 
@@ -38,7 +39,7 @@ Default is B<20> seconds.
 
 =item B<< --pin|-p <PIN> >>
 
-The SIM PIN, if the card ist still locked. This is typically 
+The SIM PIN, if the card is still locked. This is typically 
 the case just after the modem got stuck into your computer.
 B<Attention>: The SIM PIN can be seen in the process list as
 long as the script is running - use with care on multi user 
@@ -58,6 +59,13 @@ any detected modem type.
 This is the opposite of the previous option: Use encoding, even if the
 modem type does not indicate that it is needed. This (obviously) takes
 precedence before any detected modem type.
+
+=item B<--cancel|-c>
+
+Aborts an active USSD session. USSD sessions are queries for more
+information by the provider; they can take the form of simple menus
+with numbers to choose the menu entries or a query to enter
+a top up code.
 
 =item B<--help|-h|-?>
 
@@ -131,7 +139,8 @@ Displays your own phone number.
 
 =item * B<*100#>
 
-Overview about other USSD-Codes.
+Tchibo-Mobile only: A menu with further options. This will start
+an USSD session.
 
 =item * B<*101#>
 
@@ -146,6 +155,9 @@ Prepaid account validity.
 Topping up your prepaid account. Please note that a top up code consists
 of numbery only! Dashes in your top up code are simply used for 
 readability - don't enter them. Use only the numbers.
+
+Sending '*103#' without a top up code will start a USSD session asking
+for the code.
 
 =back
 

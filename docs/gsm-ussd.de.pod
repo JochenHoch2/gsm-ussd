@@ -8,6 +8,7 @@ gsm-ussd - USSD-Abfragen über ein GSM/UMTS-Modem senden
 
  gsm-ussd --help|-h|-?
  gsm-ussd [-m <modem>] [-t <timeout>] [-p <pin>] [-d] [-l <logfile>] [<ussd-cmd>...]
+ gsm-ussd [-m <modem>] [-t <timeout>] [-d] [-l <logfile>] --cancel|-c
 
 =head1 DESCRIPTION
 
@@ -45,7 +46,7 @@ System mit Bedacht verwenden! B<Nochmals Achtung>: Wenn Sie eine
 Shell mit Command Line History verwenden, wird das Kommando inkl.
 PIN dort eine Weile lang im Klartext gespeichert!
 
-=item B<--cleartext|-c>
+=item B<--cleartext>
 
 Schaltet auf Klartextversand des USSD-Kommandos um, d.h. ohne die
 USSD-Kommandos in 7Bit gepackte Hexstrings zu konvertieren, wie es
@@ -58,6 +59,13 @@ Dies ist die Negation der vorhergehenden Option: Schaltet auf
 kodierten Versand des USSD-Kommandos um, auch wenn die Modemerkennung
 dies nicht als notwendig erkennt. Diese Option
 hat Vorrang vor der aus dem Modemtyp ermittelten Reaktion.
+
+=item B<--cancel|-c>
+
+Bricht eine aktive USSD-Session ab. USSD-Sessions sind Nachfragen
+des Providers nach weiteren Informationen; diese können die Form 
+von einfachen Menüs annehmen oder Zahlenfolgen wie ein Cashcode
+sein. 
 
 =item B<--help|-h|-?>
 
@@ -142,7 +150,8 @@ Ausgabe der Kosten der letzten Verbindung.
 
 =item * B<*100#>
 
-Übersicht über weitere USSD-Codes
+Nur bei Tchibo-Mobile: Menü mit weiteren Auswahlmöglichkeiten.
+Dies beginnt eine USSD Session.
 
 =item * B<*101#>
 
@@ -157,6 +166,9 @@ Abfrage der Gültigkeitsdauer des Guthabens.
 Aufladen einer Prepaid-Karte bei O2. Bitte beachten, dass der Aufladecode
 nur aus Ziffern besteht und eventuelle andere Zeichen nur zur Gruppierung
 dienen!
+
+Läßt man den Cashcode weg und sendet nur *103#, beginnt eine USSD Session,
+die den Cashcode abfragt.
 
 =back
 
