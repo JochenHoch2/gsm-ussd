@@ -83,8 +83,11 @@ function copy_gsm-ussd_files {
 		cp ../LICENSE $DOC_PATH/copyright
 		cp ../docs/README.en $DOC_PATH
 		cp ../docs/README.de $DOC_PATH
+		cp ../docs/story.txt $DOC_PATH
+		cp ../docs/ussd-sessions.txt $DOC_PATH
 		cp ../README $DOC_PATH
 		cp ../TODO $DOC_PATH
+		cp ../INSTALL $DOC_PATH
 		git log > $DOC_PATH/changelog
 		cat > $DOC_PATH/changelog.Debian <<-'EOF'
 		gsm-ussd (0.1.0-1) karmic lucid; urgency=low
