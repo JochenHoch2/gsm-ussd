@@ -1,0 +1,133 @@
+USSD sessions
+=============
+
+Warning
+-------
+
+Please note that support for USSD sessions is still young and might
+not be complete, as I have exactly one opportunity for testing 
+(and research). So take care: If you incur any costs while trying
+USSD sessions, you'll have to pay yourself! 
+
+
+Explanation
+-----------
+
+The most common USSD queries are one-shots: Querying your prepaid
+account balance, topping up your account, querying your own
+telephone number and so on. gsm-ussd will do the query, receive
+a response and that is that.
+
+But some other USSD queries will start a USSD session. The response
+code is 1 (Further action required) instead of 0 (No further action
+required). While the session is running, the response code will 
+always be 1. Typically you'll see a simple menu with numbers to choose
+the menu entries or a text instructing you to enter some numbers, such
+as top up codes, PINs etc.
+
+While in a session, sending a "normal" USSD query will not necessarily
+work; instead, the menu or instruction might be repeated.
+
+So how do you get out of a USSD session? Either the network provider
+has got enough information from you so that he will send a USSD
+response of 0; this will end the session. Or you yourself cancel the
+session by running gsm-ussd with the option "--cancel" (or "-c" for
+short). No harm will be done if you call "gsm-ussd -c" if no session
+is active: You will simply get a message that there was no session 
+to cancel. 
+
+
+Example
+-------
+
+This is a little session as an example how USSD sessions can work.
+Unfortunately, as I live in Germany, this session is in German too,
+but the gist of it should become clear from my comments. 
+
+Let's start with a simple USSD query:
+
+	$ ./gsm-ussd.pl '*100#'
+	USSD session open, to cancel use "gsm-ussd -c".
+	Tchibo mobil Servicemenü:
+	1 Kontoabfrage
+	2 Guthaben-Verfügbarkeit
+	3 Aufladung Guthabenkarte
+	4 Optionsmanager
+	$
+
+The first line (USSD session open, ...) is printed on STDERR if gsm-ussd
+receives a USSD response code of 1, i.e. a session is open. The service
+menu displayed lets me query my account balance (1), the activity time (2),
+top up my account (3) and choose an option manager to subscribe or cancel
+different tariffs (4). 
+
+	$ ./gsm-ussd.pl '4'
+	USSD session open, to cancel use "gsm-ussd -c".
+	Optionsmanager 
+
+	1 Optionsstatus 
+	2 Option buchen 
+	$
+
+Now, please note that the argument to gsm-ussd is a simple number without
+'*' or '#'. If you send anything else, even other legal USSD queries, the
+only effect will be that the menu is displayed again!
+
+	$ ./gsm-ussd.pl '*101#'
+	USSD session open, to cancel use "gsm-ussd -c".
+	Optionsmanager 
+
+	1 Optionsstatus 
+	2 Option buchen 
+	$
+
+See? Within the session, the query for my account balance is not directly 
+available.
+
+	$ ./gsm-ussd.pl '1'
+	USSD session open, to cancel use "gsm-ussd -c".
+	Folgende Optionen sind gebucht: 
+
+	1 100 Minuten kostenlos 
+	0 Abbruch 
+
+Alright, these are my options. "Abbruch" equals "Cancel", so can I choose
+"0" to end the session?
+
+	$ ./gsm-ussd.pl '0'
+	USSD session open, to cancel use "gsm-ussd -c".
+	Tchibo mobil Servicemenü:
+	1 Kontoabfrage
+	2 Guthaben-Verfügbarkeit
+	3 Aufladung Guthabenkarte
+	4 Optionsmanager
+	$
+
+No, this is only a shortcut to the main menu.
+
+	$ ./gsm-ussd.pl -c
+	USSD cancel request successful
+	$
+
+Running gsm-ussd with option -c instead cancels the session. Now, will *101#
+work again?
+
+	$ ./gsm-ussd.pl '*101#'
+	Ihr Tchibo mobil Guthaben beträgt: 1.00 Euro.
+	$ 
+
+Yes, it does, that's my account balance. I'm rich! Let's try that --cancel
+option again:
+
+	$ ./gsm-ussd.pl -c
+	No USSD session to cancel.
+	$
+
+Well, we knew that, but no harm in checking, is there?
+
+So now you know how USSD sessions work and how gsm-ussd can be used to 
+handle them. If you encounter USSD menus that work different, let me
+know!
+
+
+Jochen Gruse, <jochen@zum-quadrat.de>
