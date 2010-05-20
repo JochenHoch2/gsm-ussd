@@ -818,7 +818,9 @@ sub modem_needs_pdu_format {
 sub is_valid_ussd_query {
     my ( $query ) = @_;
 
-    if ( $query =~ m/^\*[0-9*]+#$/ ) {
+    # The first RA checks for a standard USSD
+    # The second allows simple numbers as used by USSD sessions
+    if ( $query =~ m/^\*[0-9*]+#$/ || $query =~ m/^\d+$/) {
         return $success;
     }
     return $fail;
