@@ -19,14 +19,6 @@ This is just a collection of ideas. Care to comment?
   messages. Of course, the actual translation (apart from English
   and German) would have to be done by someone else...
 
-* Some more research: Right now, I deal with USSD queries as 
-  "one shot" commands. I send a query, receive an answer and that's 
-  it. But my docs suggest that more is possible; have a look at
-  dev/ussd-response-types.txt.
-  There are applications being run via USSD codes. Sending a 
-  type 2 CUSD command cancels a USSD session, this might be 
-  interesting for someone.
-
 
 DONE
 ====
@@ -59,6 +51,14 @@ DONE
   own line. 
   Up to v0.2.2, you *could* enter more than one query, but all but the
   first were ignored.
+
+* USSD sessions are supported now. 
+  If a USSD response signifies an open USSD session, the user is told.
+  Presumably, some menu or instructions to enter a string of numbers
+  will be the actual response. So I had to relax the USSD query checking
+  an accept simple sequences of numbers too. gsm-ussd is still a 
+  one-shot command; it exits while a session is still active. To cancel
+  a session, use option "--cancel" (or "-c" as short option).
 
 
 NOT TO DO
