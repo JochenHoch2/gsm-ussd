@@ -427,17 +427,28 @@ if ( ! $net_is_available ) {
     exit $exit_nonet;
 }
 
-for my $ussd_query ( @ussd_queries ) {
-    if ( ! is_valid_ussd_query ( $ussd_query ) ) {
-        print STDERR "\"$ussd_query\" is not a valid USSD query - ignored.\n";
-        next;
-    }
-    my $ussd_result = do_ussd_query ( $ussd_query );
-    if ( $ussd_result->{ok} ) {
-        print $ussd_result->{msg}, $/;
+if ( $cancel_ussd_session ) {
+    my $cancel_result = cancel_ussd_session();
+    if ( $cancel_result->{ok} ) {
+        print $cancel_result->{msg}, $/;
     }
     else {
-        print STDERR $ussd_result->{msg}, $/;
+        print STDERR $cancel_result->{msg}, $/;
+    }
+}
+else {
+    for my $ussd_query ( @ussd_queries ) {
+        if ( ! is_valid_ussd_query ( $ussd_query ) ) {
+            print STDERR "\"$ussd_query\" is not a valid USSD query - ignored.\n";
+            next;
+        }
+        my $ussd_result = do_ussd_query ( $ussd_query );
+        if ( $ussd_result->{ok} ) {
+            print $ussd_result->{msg}, $/;
+        }
+        else {
+            print STDERR $ussd_result->{msg}, $/;
+        }
     }
 }
 
@@ -829,7 +840,7 @@ sub is_valid_ussd_query {
 
 ########################################################################
 # Function: do_ussd_query
-# Args:     None.
+# Args:     $query      The USSD query to send ('*100#')
 # Returns:  Hashref 
 #           Key 'ok':   $success if USSD query successfully transmitted
 #                       and answer received
@@ -865,7 +876,7 @@ sub do_ussd_query {
         }
         elsif ( $response_type == 1 ) {
             DEBUG ("USSD response type: Further action required (1)");
-            print STDERR "Please be advised that further action is required.\n";
+            print STDERR "USSD session open, to cancel use \"gsm-ussd -c\".\n";
         }
         elsif ( $response_type == 2 ) {
             my $msg = "USSD response type: USSD terminated by network (2)";
@@ -898,6 +909,32 @@ sub do_ussd_query {
     else {
         DEBUG ("USSD query failed, error: " . $result->{description});
         return { ok => $fail, msg => $result->{description} };
+    }
+}
+
+
+########################################################################
+# Function: cancel_ussd_session
+# Args:     None.
+# Returns:  Hashref 
+#           Key 'ok':   $success if USSD query successfully transmitted
+#                       and answer received
+#                       $fail if USSD query aborted or not able to send
+#           Key 'msg':  Error message or USSD query result, in accordance
+#                       to the value of 'ok'.
+sub cancel_ussd_session {
+
+    DEBUG ('Trying to cancel USSD session');
+    my $result = send_command ( "AT+CUSD=2\r", 'wait_for_OK' );
+    if ( $result->{ok} ) {
+        my $msg = 'USSD cancel request successful';
+        DEBUG ($msg);
+        return { ok => $success, msg => $msg };
+    }
+    else {
+        my $msg = 'No USSD session to cancel.';
+        DEBUG ($msg);
+        return { ok => $fail, msg => $msg };
     }
 }
 
