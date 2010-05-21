@@ -46,6 +46,9 @@ deb:		doc
 rpm:		doc
 	cd packages && ./mkrpm.sh
 
+publish:	clean rpm deb tar
+	cd packages && ncftpput -f ~/.ftp /linux/downloads gsm-ussd*
+
 clean:
 	rm -f docs/*.man
 	rm -f packages/*.deb
