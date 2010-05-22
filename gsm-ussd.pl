@@ -949,6 +949,10 @@ sub interpret_ussd_data {
         DEBUG ("CUSD message has no encoding, interpreting as cleartext");
         return { ok => $success, msg => $response };
     }
+    elsif ( $encoding == 72 ) {
+        DEBUG ("Modem uses cleartext, interpreting message as cleartext");
+        return { ok => $success, msg => decode ('UCS-2BE', hex_to_string ($response) ) };
+    }
     elsif ( $use_cleartext ) {
         DEBUG ("Modem uses cleartext, interpreting message as cleartext");
         return { ok => $success, msg => $response };
