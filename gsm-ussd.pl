@@ -904,7 +904,7 @@ sub do_ussd_query {
             return { ok => $fail, msg => $msg };
         }
         # Only reached if USSD response type is 0 or 1
-        return interpret_ussd_data ($response, $encoding);
+        return { ok => $success, msg => interpret_ussd_data ($response, $encoding) };
     }
     else {
         DEBUG ("USSD query failed, error: " . $result->{description});
@@ -941,31 +941,46 @@ sub cancel_ussd_session {
 
 ########################################################################
 # Function: interpret_ussd_data
-########################################################################
+# Args:     $response   -   The USSD string response
+#           $encoding   -   The USSD encoding (dcs)
+# Returns:  String containint the USSD response in clear text
 sub interpret_ussd_data {
     my ($response, $encoding) = @_;
 
     if ( ! defined $encoding ) {
         DEBUG ("CUSD message has no encoding, interpreting as cleartext");
-        return { ok => $success, msg => $response };
+        return $response;
     }
-    elsif ( $encoding == 72 ) {
-        DEBUG ("Modem uses cleartext, interpreting message as cleartext");
-        return { ok => $success, msg => decode ('UCS-2BE', hex_to_string ($response) ) };
+
+    if ( dcs_is_default_alphabet ( $encoding ) ) {
+        DEBUG ("Encoding \"$encoding\" says response is in default alphabet");
+        if ( $use_cleartext ) {
+            DEBUG ("Modem uses cleartext, interpreting message as cleartext");
+            return $response;
+        }
+        elsif ( $encoding == 0 ) {
+            return hex_to_string( $response );
+        }
+        elsif ( $encoding == 15 ) {
+            return decode ('gsm0338', gsm_unpack( hex_to_string( $response )));
+        }
+        else {
+            DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
+            return hex_to_string( $response );
+        }
+        # NOTREACHED
     }
-    elsif ( $use_cleartext ) {
-        DEBUG ("Modem uses cleartext, interpreting message as cleartext");
-        return { ok => $success, msg => $response };
+    elsif ( dcs_is_ucs2 ( $encoding ) ) {
+        DEBUG ("Encoding \"$encoding\" says response is in UCS2-BE");
+        return decode ('UCS-2BE', hex_to_string ($response));
     }
-    elsif ( $encoding == 0 ) {
-        return { ok => $success, msg => hex_to_string( $response ) };
-    }
-    elsif ( $encoding == 15 ) {
-        return { ok => $success, msg => decode_text( $response ) };
+    elsif ( dcs_is_8bit ( $encoding ) ) {
+        DEBUG ("Encoding \"$encoding\" says response is in 8bit");
+        return hex_to_string ($response); # Should this be cleartext?
     }
     else {
         DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
-        return { ok => $success, msg => hex_to_string( $response ) };
+        return hex_to_string( $response );
     }
     # NOTREACHED
 }
@@ -1114,7 +1129,7 @@ sub ussd_query_cmd {
         $ussd_string = $ussd_cmd;
     }
     else {
-        $ussd_string = encode_text($ussd_cmd);
+        $ussd_string = string_to_hex (gsm_pack (encode('gsm0338', $ussd_cmd)));
     }
 	return sprintf 'AT+CUSD=%s,"%s",%s', $result_code_presentation, $ussd_string, $encoding;
 }
@@ -1165,71 +1180,6 @@ sub hex_to_string {
 # Returns:  Hexstring
 sub string_to_hex {
 	return uc( unpack( "H*", $_[0] ) );
-}
-
-
-########################################################################
-# Function: gsm0338_to_utf8
-# Args:     String in GSM 03.38 encoding
-# Returns:  String in UTF-8 encoding
-sub gsm0338_to_utf8 {
-    my $utf8;
-
-    eval {
-        $utf8 = decode( 'gsm0338', $_[0] , 1);
-    };
-    if ( $@ ) {
-        print STDERR "Converting GSM0338->UTF-8 failed: $@\n";
-        print STDERR "This shouldn't have happened at all!";
-        exit $exit_bug;
-    }
-    return $utf8;
-}
-
-
-########################################################################
-# Function: utf8_to_gsm0338
-# Args:     String in UTF-8 encoding
-# Returns:  String in GSM 03.38 encoding
-sub utf8_to_gsm0338 {
-    my $gsm0338;
-
-    eval {
-        $gsm0338 = encode( 'gsm0338', $_[0] , 1);
-    };
-    if ( $@ ) {
-        print STDERR "Converting UTF-8->GSM0338 failed: $@\n";
-        print STDERR "Please check the USSD query for illegal characters!\n";
-        exit $exit_error;   # Perhaps $exit_bug? 
-    }
-    return $gsm0338;
-}
-
-
-########################################################################
-# Function: encode_text
-# Args:     String in UTF-8 format
-# Returns:  Hexstring containing the above string in GSM 03.38 encoding
-sub encode_text {
-	my ($text)              = @_;
-
-	my $gsm_text	        = utf8_to_gsm0338 ( $text );
-	my $packed_gsm_string	= gsm_pack ( $gsm_text );
-	return	            	string_to_hex ( $packed_gsm_string );
-}
-
-
-########################################################################
-# Function: decode_text
-# Args:     A hex string of GSM packed values corresponding to GSM
-#           chars.
-# Returns:  A human readable string.
-sub decode_text {
-	my ($hex)               = @_;
-
-	my $packed_gsm_string	= hex_to_string ( $hex );
-	my $gsm_string	        = gsm_unpack ( $packed_gsm_string );
-	return	            	gsm0338_to_utf8 ( $gsm_string );
 }
 
 
@@ -1298,6 +1248,78 @@ sub gsm_unpack {
 # Returns:  String containing 7 bit values of the arg per character
 sub gsm_pack {
 	return repack_bits(7, 8, $_[0]);
+}
+
+
+#######################################################################
+# Function: dcs_is_default_alphabet
+# Args:     $enc    - the USSD dcs
+# Returns:  1   - dcs indicates default alpabet
+#           0   - dcs does not indicate default alphabet
+sub dcs_is_default_alphabet {
+    my ($enc) = @_;
+
+    if ( ! bit_is_set (6, $enc) && ! bit_is_set (7, $enc) ) {
+        return 1;
+    }
+    if (     bit_is_set(6, $enc)
+        && ! bit_is_set (7, $enc)
+        && ! bit_is_set (2, $enc)
+        && ! bit_is_set (3, $enc)
+    ) {
+        return 1;
+    }
+    return 0;
+}
+
+
+#######################################################################
+# Function: dcs_is_ucs2
+# Args:     $enc    - the USSD dcs
+# Returns:  1   - dcs indicates UCS2-BE
+#           0   - dcs does not indicate UCS2-BE
+sub dcs_is_ucs2 {
+    my ($enc) = @_;
+
+    if (     bit_is_set (6, $enc)
+        && ! bit_is_set (7, $enc)
+        && ! bit_is_set (2, $enc)
+        &&   bit_is_set (3, $enc)
+    ) {
+        return 1;
+    }
+    return 0;
+}
+
+
+#######################################################################
+# Function: dcs_is_8bit
+# Args:     $enc    - the USSD dcs
+# Returns:  1   - dcs indicates 8bit
+#           0   - dcs does not indicate 8bit
+sub dcs_is_8bit {
+    my ($enc) = @_;
+
+    if (     bit_is_set (6, $enc)
+        && ! bit_is_set (7, $enc)
+        &&   bit_is_set (2, $enc)
+        && ! bit_is_set (3, $enc)
+    ) {
+        return 1;
+    }
+    return 0;
+}
+
+
+########################################################################
+# Function: bit_is_set
+# Args:     $bit - Number of the bit to test
+#           $val - Value to test bit $bit against
+# Returns:  1   - Bit is set to 1
+#           0   - Bit is set to 0
+sub bit_is_set {
+    my ($bit, $val) = @_;
+    return $val & ( 2 ** $bit );
 }
 
 
