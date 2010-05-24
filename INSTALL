@@ -30,7 +30,7 @@ Tested Hardware
 * Huawei E1550 (USB ID 12d1:1001 /dev/ttyUSB2)
   Thanks to Tomasz from Polonia!
 
-May be? * Huawei E165G (USB ID ????:????, /dev/ttyUSB?) 
+* Huawei E165G (USB ID 12d1:1003, /dev/ttyUSB1) 
 
 * Ericsson-Modem of the Ideapad S10 3G (USB ID 0bdb:1900, /dev/ttyACM1)
   Thanks to Ulf (yeti at debianforum.de)!
@@ -50,6 +50,10 @@ May be? * Huawei E165G (USB ID ????:????, /dev/ttyUSB?)
 
 * Option GlobeTrotter HSDPA Modem (USB ID 0af0:6971, /dev/ttyHS1)
   Thanks to a colleague of mine!
+
+* Onda ZTE MF100 (USB-ID 19d2:0031, /dev/ttyUSB1), a.k.a.
+	O2 Prepaid Surfstick
+  Thanks to Karl (reported by email)!
 
 * Not successfully tested: Huawei E870 (USB ID 12d1:1003, /dev/tty???)
   Card only came up with the ZeroCD-Image as /dev/sr1, no serial
