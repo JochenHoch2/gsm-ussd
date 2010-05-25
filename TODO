@@ -3,8 +3,6 @@ TODO
 
 This is just a collection of ideas. Care to comment?
 
-* Rip out use of `stty ...`, use POSIX qw(:termios_h) instead.
-
 * Query +CMEE, set it to 1 to receive CMS/CME ERROR messages,
   reset it to old value.
 
@@ -59,6 +57,13 @@ DONE
   an accept simple sequences of numbers too. gsm-ussd is still a 
   one-shot command; it exits while a session is still active. To cancel
   a session, use option "--cancel" (or "-c" as short option).
+
+* After realising that I couldn't get around setting termios values for
+  the control device, the first workaround was done using
+      system("stty -F $modem_device ...")
+  That incurred an external dependency on stty and three extra processes
+  just for saving, setting and restoring the termios values. The 
+  workaround is now replaced by proper use of POSIX q/:termios_h/.
 
 
 NOT TO DO
