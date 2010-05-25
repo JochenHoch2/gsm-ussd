@@ -39,7 +39,7 @@ use Expect;     # External dependency
 # Init
 ########################################################################
 
-our $VERSION            = '0.3.0';          # Our version
+our $VERSION            = '0.3.1';          # Our version
 my $modemport           = '/dev/ttyUSB1';   # AT port of a Huawei E160 modem
 my $modem_fh            = undef;
 my $timeout_for_answer  = 20;               # Timeout for modem answers in seconds
