@@ -4,7 +4,6 @@
 ########################################################################
 # Script:       gsm-ussd
 # Description:  Send USSD queries via GSM modem
-# Dependencies: stty (coreutils)
 ########################################################################
 # Copyright (C) 2010 Jochen Gruse, jochen@zum-quadrat.de
 #
@@ -30,8 +29,10 @@ use 5.008;                  # Encode::GSM0338 only vailable since 5.8
 
 use Getopt::Long;
 use Pod::Usage;
-use Expect;
-use Encode qw(encode decode);
+use Encode  qw(encode decode);
+use POSIX   qw(:termios_h);
+
+use Expect;     # External dependency
 
 
 ########################################################################
@@ -43,10 +44,6 @@ my $modemport           = '/dev/ttyUSB1';   # AT port of a Huawei E160 modem
 my $modem_fh            = undef;
 my $timeout_for_answer  = 20;               # Timeout for modem answers in seconds
 my @ussd_queries        = ( '*100#' );      # Prepaid account query as default
-my @stty_settings       = (
-                            'raw',
-                            '-echo'
-                          );                # Stty settings for modem interface
 my $use_cleartext       = undef;            # Need to encode USSD query?
 my $cancel_ussd_session = 0;                # User wants to cancel an ongoing USSD session
 my $show_online_help    = 0;                # Option flag online help
@@ -362,14 +359,14 @@ binmode (STDOUT, ':utf8');
 
 check_modemport ($modemport);
 
-my $saved_stty_value = save_serial_opts ($modemport);
-set_serial_opts ( $modemport, @stty_settings );
-
 DEBUG ("Opening modem");
 if ( ! open $modem_fh, '+<:raw', $modemport ) {
     print STDERR "Modem port \"$modemport\" seems in order, but cannot open it anyway:\n$!\n";
     exit $exit_error;
 }
+
+my $saved_stty_value = save_serial_opts ($modem_fh);
+set_serial_opts ( $modem_fh );
 
 DEBUG ("Initialising Expect");
 $expect	= Expect->exp_init($modem_fh);
@@ -467,14 +464,14 @@ exit $exit_success; # will give control to END
 # Returns:  Nothing. Will be called after exit().
 END {
     DEBUG ("END: Cleaning up");
-    my $exitcode = $?;  # Save it, as load_serial_opts uses ``
+    my $exitcode = $?;  # Save it
     if ( defined $modem_fh) {
+        if ( defined $saved_stty_value ) {
+            DEBUG ("END: Resetting serial interface");
+            restore_serial_opts($modem_fh, $saved_stty_value);
+        }
         DEBUG ("END: Closing modem interface");
         close $modem_fh;
-    }
-    if ( defined $saved_stty_value && $saved_stty_value ne '' ) {
-        DEBUG ("END: Resetting serial interface");
-        load_serial_opts($modemport, $saved_stty_value);
     }
     $? = $exitcode;
 }
@@ -549,31 +546,70 @@ sub check_modemport {
 # Returns:  String containing all serial opts as is
 #           Empty String in case of errors
 sub save_serial_opts {
-    my ($serial_device) = @_;
+    my ($interface) = @_;
+    my $termdata;
     
-    DEBUG ("Saving serial state of $serial_device");
-    my $serial_opts = `stty -F $serial_device -g`;
-    if ( $? << 8 != 0 || ! defined $serial_opts ) {
-        DEBUG ('No serial state found!');
-        return '';
-    }
-    return $serial_opts;
+    DEBUG ("Saving serial state");
+    my $termios = POSIX::Termios->new();
+
+    $termios->getattr(fileno($interface));
+
+    $termdata->{cflag}          = $termios->getcflag();
+    $termdata->{iflag}          = $termios->getiflag();
+    $termdata->{lflag}          = $termios->getlflag();
+    $termdata->{oflag}          = $termios->getoflag();
+    $termdata->{ispeed}         = $termios->getispeed();
+    $termdata->{ospeed}         = $termios->getospeed();
+    $termdata->{cchars}{'INTR'} = $termios->getcc(VINTR);
+    $termdata->{cchars}{'QUIT'} = $termios->getcc(VQUIT);
+    $termdata->{cchars}{'ERASE'}= $termios->getcc(VERASE);
+    $termdata->{cchars}{'KILL'} = $termios->getcc(VKILL);
+    $termdata->{cchars}{'EOF'}  = $termios->getcc(VEOF);
+    $termdata->{cchars}{'TIME'} = $termios->getcc(VTIME);
+    $termdata->{cchars}{'MIN'}  = $termios->getcc(VMIN);
+    $termdata->{cchars}{'START'}= $termios->getcc(VSTART);
+    $termdata->{cchars}{'STOP'} = $termios->getcc(VSTOP);
+    $termdata->{cchars}{'SUSP'} = $termios->getcc(VSUSP);
+    $termdata->{cchars}{'EOL'}  = $termios->getcc(VEOL);
+
+    return $termdata;
 }
 
 
 ########################################################################
-# Function: load_serial_opts
+# Function: restore_serial_opts
 # Args:     $serial_device  -   The device to remember the stty values of
 #           $opts           -   stty values to set
 # Returns:  1               -   State successfully set
 #           0               -   State could not be loaded
-sub load_serial_opts {
-    my ($serial_device, $opts) = @_;
+sub restore_serial_opts {
+    my ($interface, $termdata) = @_;
     
-    DEBUG ("Loading serial state for $serial_device");
-    my $stty_out = `stty -F $serial_device $opts 2>&1`;
-    if ( $? << 8 != 0 ) {
-        DEBUG ("No reload possible: $stty_out");
+    DEBUG ("restore serial state");
+
+    my $termios = POSIX::Termios->new();
+
+    $termios->setcflag( $termdata->{cflag} );
+    $termios->setiflag( $termdata->{iflag} );
+    $termios->setlflag( $termdata->{lflag} );
+    $termios->setoflag( $termdata->{oflag} );
+    $termios->setispeed( $termdata->{ispeed} );
+    $termios->setospeed( $termdata->{ospeed} );
+    $termios->setcc( VINTR, $termdata->{cchars}{'INTR'} );
+    $termios->setcc( VQUIT, $termdata->{cchars}{'QUIT'} );
+    $termios->setcc( VERASE,$termdata->{cchars}{'ERASE'});
+    $termios->setcc( VKILL, $termdata->{cchars}{'KILL'} );
+    $termios->setcc( VEOF,  $termdata->{cchars}{'EOF'}  );
+    $termios->setcc( VTIME, $termdata->{cchars}{'TIME'} );
+    $termios->setcc( VMIN,  $termdata->{cchars}{'MIN'}  );
+    $termios->setcc( VSTART,$termdata->{cchars}{'START'});
+    $termios->setcc( VSTOP, $termdata->{cchars}{'STOP'} );
+    $termios->setcc( VSUSP, $termdata->{cchars}{'SUSP'} );
+    $termios->setcc( VEOL,  $termdata->{cchars}{'EOL'}  );
+
+    my $result = $termios->setattr(fileno($interface));
+    if ( ! defined $result ) {
+        DEBUG ("Could not restore serial state");
         return 0;
     }
     return 1;
@@ -587,13 +623,23 @@ sub load_serial_opts {
 # Returns:  1               -   Success
 #           0               -   Failure
 sub set_serial_opts {
-    my ($serial_device, @opts) = @_;
+    my ($interface) = @_;
     
-    DEBUG ("Setting serial state for $serial_device:", @opts);
-    my $opts = join (' ', @opts);
-    my $stty_out = `stty -F $serial_device $opts 2>&1`;
-    if ( $? << 8 != 0 ) {
-        DEBUG ("Set serial state failed: $stty_out");
+    DEBUG ("Setting serial state");
+
+    my $termios = POSIX::Termios->new();
+    $termios->getattr(fileno($interface));
+
+    $termios->setcflag( CS8 | HUPCL | CREAD | CLOCAL );
+    $termios->setiflag( 0 ); # Nothing on!
+    $termios->setlflag( 0 ); # Nothing on!
+    $termios->setoflag( 0 );
+    # $termios->setispeed( $termdata->{ispeed} ); #Autobaud
+    # $termios->setospeed( $termdata->{ospeed} ); #Autobaud
+
+    my $result = $termios->setattr(fileno($interface));
+    if ( ! defined $result ) {
+        DEBUG ("Could not set serial state");
         return 0;
     }
     return 1;
