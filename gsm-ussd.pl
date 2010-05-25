@@ -542,9 +542,9 @@ sub check_modemport {
 
 ########################################################################
 # Function: save_serial_opts
-# Args:     $serial_device  -   The device to remember the stty values of
-# Returns:  String containing all serial opts as is
-#           Empty String in case of errors
+# Args:     $interface   -   The file handle to remember termios values of
+# Returns:  Hashref containing the termios values found
+#           undef in case of errors
 sub save_serial_opts {
     my ($interface) = @_;
     my $termdata;
@@ -578,14 +578,14 @@ sub save_serial_opts {
 
 ########################################################################
 # Function: restore_serial_opts
-# Args:     $serial_device  -   The device to remember the stty values of
-#           $opts           -   stty values to set
+# Args:     $interface      -   The file handle to restore termios values for
+#           $termdata       -   Hashref (return value of save_serial_opts)
 # Returns:  1               -   State successfully set
-#           0               -   State could not be loaded
+#           0               -   State could not be restored
 sub restore_serial_opts {
     my ($interface, $termdata) = @_;
     
-    DEBUG ("restore serial state");
+    DEBUG ("Restore serial state");
 
     my $termios = POSIX::Termios->new();
 
@@ -618,8 +618,7 @@ sub restore_serial_opts {
 
 ########################################################################
 # Function: set_serial_opts
-# Args:     $serial_device  -   The device to set the stty values for
-#           @opts           -   stty values to set
+# Args:     $interface      -   The file handle to set termios values for
 # Returns:  1               -   Success
 #           0               -   Failure
 sub set_serial_opts {
