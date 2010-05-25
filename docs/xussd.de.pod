@@ -13,8 +13,9 @@ xussd - Simple GUI für gsm-ussd
 Um auch der CLIphoben Anwenderschaft die Möglichkeit zu
 erschliessen, USSD-Abfragen zu stellen, zeigt dieses Programm
 ein Dialogfenster für die USSD-Abfrage an, dann einen
-Fortschrittsbalken und zu guter Letzt ein Infofenster mit dem
-Ergebnis der Abfrage.
+Fortschrittsbalken und schließlich ein Infofenster mit dem
+Ergebnis der Abfrage. Der Zyklus beginnt dann von vorne, 
+um ggf. weitere Eingaben an eine USSD Sitzung senden zu können.
 
 Sollte eine PIN notwendig sein, wird diese nach dem ersten
 Versuch nachgefragt.

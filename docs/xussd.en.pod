@@ -12,9 +12,12 @@ xussd - Simple GUI for gsm-ussd
 
 To make USSD queries available for the CLI adverse, this tool
 displays a dialog box for the query, a progressbar and the
-result of the query in an info box.
+result of the query in an info box. This cycle will repeat
+until Cancel is pressed (not in the progress bar box - sorry)
+so you can enter more data if you are in a USSD session.
 
-If a PIN is needed, it will be queried for a second try.
+If a PIN is needed, it will be queried after the first aborted
+try.
 
 For a explanation of USSD queries, please take a look at 
 B<gsm-ussd(1)>.
