@@ -303,7 +303,8 @@ while true ; do
 
 	USSD_QUERY=$( get_ussd_query_$DESKTOP $USSD_QUERY )
 	if [ $? -ne 0 ] ; then
-		exit 1
+		# Cancel pressed
+		break;
 	fi
 
 	# Start the progress bar display
@@ -335,18 +336,17 @@ while true ; do
 			fi
 			PIN_OPT="-p $PIN"
 			;;
-		*)	break
+		*)	# Show gsm-ussd result in appropiate dialog box
+			if [ $GSM_USSD_EXITCODE -eq 0 ] ; then
+				show_info_$DESKTOP "$RESULT"
+			else
+				show_error_$DESKTOP "$RESULT"
+			fi
 			;;
 	esac
-	# Retry with new PIN
 done
 
-# Show gsm-ussd result in appropiate dialog box
-
-if [ $GSM_USSD_EXITCODE -eq 0 ] ; then
-	show_info_$DESKTOP "$RESULT"
-else
-	show_error_$DESKTOP "$RESULT"
-fi
+# Just in case that there's still a USSD session open
+$GSM_USSD $GSM_USSD_OPTS --cancel
 
 exit $GSM_USSD_EXITCODE
