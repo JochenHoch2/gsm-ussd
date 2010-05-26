@@ -70,12 +70,12 @@ my $exit_bug        = 10;
 # Parse options and react to them
 GetOptions (
     'modem|m=s'     =>	\$modemport,
-    'timeout|t=i'	=>	\$timeout_for_answer,
-	'pin|p=s'       =>	\$pin,
+    'timeout|t=i'   =>	\$timeout_for_answer,
+    'pin|p=s'       =>	\$pin,
     'cleartext!'    =>  \$use_cleartext,
     'cancel|c'      =>  \$cancel_ussd_session,
     'debug|d'       =>  \$debug,
-    'logfile|l=s'	=>	\$expect_logfilename,
+    'logfile|l=s'   =>	\$expect_logfilename,
     'help|h|?'      =>	\$show_online_help,
 ) 
 or pod2usage(-verbose => 0);
@@ -896,7 +896,12 @@ sub do_ussd_query {
     my ( $query ) = @_;
 
     DEBUG ("Starting USSD query \"$query\"");
-    my $result = send_command ( ussd_query_cmd($query, $use_cleartext), 'wait_for_cmd_answer' );
+
+    my $result = send_command (
+        ussd_query_cmd($query, $use_cleartext),
+        'wait_for_cmd_answer',
+    );
+
     if ( $result->{ok} ) {
         DEBUG ("USSD query successful, answer received");
         my ($response_type,$response,$encoding)
@@ -913,8 +918,12 @@ sub do_ussd_query {
 
         if ( ! defined $response_type ) {
             # Didn't the RE match?
-            DEBUG ("Couldn't parse CUSD message: \"", $result->{description}, "\"");
-            return { ok => $fail, msg => "Couldn't understand modem answer: \"" . $result->{description} . "\"" };
+            DEBUG ("Can't parse CUSD message: \"", $result->{description}, "\"");
+            return {
+                ok  => $fail,
+                msg =>  "Can't understand modem answer: \""
+                        . $result->{description} . "\"",
+            };
         }
         elsif ( $response_type == 0 ) {
             DEBUG ("USSD response type: No further action required (0)");
@@ -1058,7 +1067,8 @@ sub send_command {
     my ($cmd, $how_to_react)	= @_;
 
     if ( ! exists $expect_programs{$how_to_react} ) {
-        print STDERR "This should not have happened - unknown expect program \"$how_to_react\" wanted!\n";
+        print STDERR "This should not have happened - ";
+        print STDERR "unknown expect program \"$how_to_react\" wanted!\n";
         print STDERR "This is a bug, please report!\n";
         exit $exit_bug;
     }
@@ -1084,53 +1094,101 @@ sub send_command {
         $match_string =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
         if ( $first_word eq 'ERROR' ) {
             # OK/ERROR are two of the three "command done" markers.
-            return { ok => $fail, match => $match_string, description => 'Broken command' } ;
+            return {
+                ok          => $fail,
+                match       => $match_string,
+                description => 'Broken command',
+            };
         }
         elsif ( $first_word eq '+CMS ERROR' ) {
             # After this error there will be no OK/ERROR anymore
             my $errormessage = translate_gms_error($first_word,$args);
-            return { ok => $fail, match => $match_string, description => "GSM network error: $errormessage ($args)" } ;
+            return {
+                ok          => $fail,
+                match       => $match_string,
+                description => "GSM network error: $errormessage ($args)",
+            };
         }
         elsif ( $first_word eq '+CME ERROR' ) {
             # After this error there will be no OK/ERROR anymore
             my $errormessage = translate_gsm_error($first_word,$args);
-            return { ok => $fail, match => $match_string, description => "GSM equipment error: $errormessage ($args)" } ;
+            return {
+                ok          => $fail,
+                match       => $match_string,
+                description => "GSM equipment error: $errormessage ($args)",
+            };
         }
         elsif ( $first_word eq 'OK' ) {
             # $before_match contains data between AT and OK
             $before_match =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
-            return { ok => $success, match => $match_string, description => $before_match } ;
+            return {
+                ok          => $success,
+                match       => $match_string,
+                description => $before_match,
+            };
         }
         elsif ( $first_word =~ /^[\^\+]/ ) {
-            return { ok => $success, match => $match_string, description => $match_string } ;
+            return {
+                ok          => $success,
+                match       => $match_string,
+                description => $match_string,
+            };
         }
         else {
-            return { ok => $fail, match => $match_string, description => "PANIC! Can't parse Expect result: \"$match_string\"" } ;
+            return {
+                ok          => $fail,
+                match       => $match_string,
+                description => "PANIC! Can't parse Expect result: \"$match_string\"",
+            } ;
         }
     }
     else {
         # Report Expect error and bail
         if ($error =~ /^1:/) {
             # Timeout
-            return { ok => $fail, match => $error, description => "No answer for $timeout_for_answer seconds!" };
+            return {
+                ok => $fail,
+                match => $error,
+                description => "No answer for $timeout_for_answer seconds!",
+            };
         }
         elsif ($error =~ /^2:/) {
             # EOF
-            return { ok => $fail, match => $error, description => "EOF from modem received - modem unplugged?" };
+            return {
+                ok          => $fail,
+                match       => $error,
+                description => "EOF from modem received - modem unplugged?",
+            };
         }
         elsif ($error =~ /^3:/) {
             # Spawn id died
-            return { ok => $fail, match => $error, description => "PANIC! Can't happen - spawn ID died!" };
+            return {
+                ok          => $fail,
+                match       => $error,
+                description => "PANIC! Can't happen - spawn ID died!",
+            };
         }
         elsif ($error =~ /^4:/) {
             # Read error
-            return { ok => $fail, match => $error, description => "Read error accessing modem: $!" };
+            return {
+                ok          => $fail,
+                match       => $error,
+                description => "Read error accessing modem: $!",
+            };
         }
         else {
-            return { ok => $fail, match => $error, description => "PANIC! Can't happen - unknown Expect error \"$error\"" };
+            return {
+                ok          => $fail,
+                match       => $error,
+                description => "PANIC! Can't happen - unknown Expect error \"$error\"",
+            };
         }
     }
-    return { ok => $fail, match => '', description => "PANIC! Can't happen - left send_command() unexpectedly!" };
+    return {
+        ok          => $fail,
+        match       => '',
+        description => "PANIC! Can't happen - left send_command() unexpectedly!",
+    };
 }
 
 
