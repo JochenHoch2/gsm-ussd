@@ -22,7 +22,7 @@ Eintreffen ausgegeben wird.
 
 =item B<< --modem|-m <modem> >>
 
-Erwartet das Modem an der übergebenen Schnittstelle. Default
+Erwartet das Modem an der übergebenen Schnittstelle.  Default
 ist C</dev/ttyUSB1>.
 
 Bitte beachten: Wenn man ein UMTS-Modem wie ein Huawei E160 ansteckt,
@@ -34,15 +34,15 @@ Zustandsmeldungen und Kommandos laufen über C</dev/ttyUSB1>.
 =item B<< --timeout|-t <timeout_in_secs> >>
 
 Der Timeout in Sekunden, den das Skript pro Anfrage an das Modem
-auf eine Antwort wartet. Per Default sind dies B<20> Sekunden.
+auf eine Antwort wartet.  Per Default sind dies B<20> Sekunden.
 
 =item B<< --pin|-p <PIN> >>
 
-Die SIM PIN, falls die Karte noch gesperrt sein sollte. Dies 
+Die SIM PIN, falls die Karte noch gesperrt sein sollte.  Dies 
 ist typischerweise direkt nach dem Einstecken des UMTS-Sticks
-der Fall. B<Achtung>: Die SIM PIN wird während der Laufzeit des
+der Fall.  B<Achtung>: Die SIM PIN wird während der Laufzeit des
 Skripts in der Prozessliste sichtbar - auf einem Multiuser-
-System mit Bedacht verwenden! B<Nochmals Achtung>: Wenn Sie eine
+System mit Bedacht verwenden!  B<Nochmals Achtung>: Wenn Sie eine
 Shell mit Command Line History verwenden, wird das Kommando inkl.
 PIN dort eine Weile lang im Klartext gespeichert!
 
@@ -50,19 +50,19 @@ PIN dort eine Weile lang im Klartext gespeichert!
 
 Schaltet auf Klartextversand des USSD-Kommandos um, d.h. ohne die
 USSD-Kommandos in 7Bit gepackte Hexstrings zu konvertieren, wie es
-für die E160-Serie von Huawei notwendig ist. Diese Option
+für die E160-Serie von Huawei notwendig ist.  Diese Option
 hat Vorrang vor der aus dem Modemtyp ermittelten Reaktion.
 
 =item B<--no-cleartext>
 
 Dies ist die Negation der vorhergehenden Option: Schaltet auf
 kodierten Versand des USSD-Kommandos um, auch wenn die Modemerkennung
-dies nicht als notwendig erkennt. Diese Option
+dies nicht als notwendig erkennt.  Diese Option
 hat Vorrang vor der aus dem Modemtyp ermittelten Reaktion.
 
 =item B<--cancel|-c>
 
-Bricht eine aktive USSD-Session ab. USSD-Sessions sind Nachfragen
+Bricht eine aktive USSD-Session ab.  USSD-Sessions sind Nachfragen
 des Providers nach weiteren Informationen; diese können die Form 
 von einfachen Menüs annehmen oder Zahlenfolgen wie ein Cashcode
 sein. 
@@ -84,12 +84,12 @@ wieder mit Bedacht verwenden!
 =item B<< --logfile|-l <logfilename> >>
 
 Schreibt den Dialog mit dem Modem, den das Skript führt, in das Logfile
-fort. Dies ist grundsätzlich eher eine Debugging-Hilfe als eine
+fort.  Dies ist grundsätzlich eher eine Debugging-Hilfe als eine
 Alltagsoption.
 
 =item B<--debug|-d>
 
-Schaltet den Debug-Modus ein. Das Skript gibt dann sehr ausführlich
+Schaltet den Debug-Modus ein.  Das Skript gibt dann sehr ausführlich
 darüber Auskunft, was es gerade macht und welches Ergebnis die
 jeweilige Aktion liefert.
 
@@ -98,9 +98,9 @@ jeweilige Aktion liefert.
 =head1 ARGUMENTS
 
 Ein USSD-Kommando ist eine Ziffernfolge, die das GSM-Netz zu tollen
-Dingen veranlasst. Per Default wird das Kommando C<*100#> gesendet,
+Dingen veranlasst.  Per Default wird das Kommando C<*100#> gesendet,
 welches alle mir bekannten Netze dazu veranlasst, den Guthabenstand
-des Prepaid-Kontos zu melden. Man kann auch mehrere USSD-Abfragen 
+des Prepaid-Kontos zu melden.  Man kann auch mehrere USSD-Abfragen 
 angeben, die hintereinander abgearbeitet werden.
 
 Bitte beachten: Grundsätzlich sind die USSD-Codes für jeden Anbieter
@@ -110,7 +110,7 @@ Liste der interessanten Dinge:
 
 =over
 
-=item * Telecom/D1
+=item * Telecom/D1 (congstar)
 
 =over
 
@@ -120,7 +120,7 @@ Guthabenabfrage.
 
 =item * B<< *101*I<cashcode># >>
 
-Aufladen einer Prepaid-Karte bei Telecom D1/Congstar. Beim Cashcode
+Aufladen einer Prepaid-Karte bei Telecom D1/Congstar.  Beim Cashcode
 bitte beachten, dass etwaige Minuszeichen zur Zifferngruppierung des
 länglichen Codes nicht mit einzugeben sind!
 
@@ -144,13 +144,13 @@ Ausgabe der Kosten der letzten Verbindung.
 
 =back
 
-=item * O2 & Reseller (Tchibo, ...)
+=item * O2 (Tchibo, FONIC, ...)
 
 =over
 
 =item * B<*100#>
 
-Nur bei Tchibo-Mobile: Menü mit weiteren Auswahlmöglichkeiten.
+O2/Tchibo-Mobile: Menü mit weiteren Auswahlmöglichkeiten.
 Dies beginnt eine USSD Session.
 
 =item * B<*101#>
@@ -163,7 +163,7 @@ Abfrage der Gültigkeitsdauer des Guthabens.
 
 =item * B<*103*I<cashcode>#>
 
-Aufladen einer Prepaid-Karte bei O2. Bitte beachten, dass der Aufladecode
+Aufladen einer Prepaid-Karte bei O2.  Bitte beachten, dass der Aufladecode
 nur aus Ziffern besteht und eventuelle andere Zeichen nur zur Gruppierung
 dienen!
 
@@ -183,7 +183,7 @@ Guthabenabfrage.
 =item * B<*104*I<cashcode>#>
 
 Aufladen einer Prepaid-Karte bei E-Plus und Resellern (Medion/Alditalk,
-Simyo, Blue, ...). Beim Cashcode bitte beachten, dass etwaige
+Simyo, Blue, ...).  Beim Cashcode bitte beachten, dass etwaige
 Minuszeichen zur Zifferngruppierung des länglichen Codes nicht mit
 einzugeben sind!
 
@@ -219,7 +219,7 @@ C<gsm-ussd(1)> setzt den Exitcode wie folgt:
 
 =item *
 
-10 - Fehler im Programm. Dieser Exitcode sollte niemals auftreten.
+10 - Fehler im Programm.  Dieser Exitcode sollte niemals auftreten.
 
 =back
 

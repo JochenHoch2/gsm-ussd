@@ -13,7 +13,7 @@ gsm-ussd - Send USSD queries by GSM/UMTS modem
 =head1 DESCRIPTION
 
 This script sends a USSD query to a modem, waits for the answer
-and displays it. The modem type is detected and any necessary
+and displays it.  The modem type is detected and any necessary
 en-/decoding and error checking is done. 
 
 =head1 OPTIONS
@@ -28,7 +28,7 @@ C</dev/ttyUSB1>.
 Please note: Depending on your modem's make and model, you might get
 B<more than one> serial USB interfaces when connecting the modem! 
 For example, the Huawei E160 gets two: C</dev/ttyUSB0> and 
-C</dev/ttyUSB1>. The first is for data, commands and state messages
+C</dev/ttyUSB1>.  The first is for data, commands and state messages
 use the second port. 
 
 =item B<< --timeout|-t <timeout_in_secs> >>
@@ -39,11 +39,11 @@ Default is B<20> seconds.
 
 =item B<< --pin|-p <PIN> >>
 
-The SIM PIN, if the card is still locked. This is typically 
+The SIM PIN to use if the card is still locked.  This is typically 
 the case just after the modem got stuck into your computer.
 B<Attention>: The SIM PIN can be seen in the process list as
 long as the script is running - use with care on multi user 
-systems! B<Attention again>: If you are using a shell with a 
+systems!  B<Attention again>: If you are using a shell with a 
 command line history, your SIM PIN will be stored there for a
 while in clear.
 
@@ -51,18 +51,18 @@ while in clear.
 
 This option causes gsm-ussd to send USSD queries in cleartext, i.e.
 without encoding them into a 7bit-packed-hex-string, as is needed
-for Huaweis E160* series of UMTS modems. This takes precedence before
+for Huaweis E160* series of UMTS modems.  This takes precedence before
 any detected modem type. 
 
 =item B<--no-cleartext>
 
 This is the opposite of the previous option: Use encoding, even if the
-modem type does not indicate that it is needed. This (obviously) takes
+modem type does not indicate that it is needed.  This (obviously) takes
 precedence before any detected modem type.
 
 =item B<--cancel|-c>
 
-Aborts an active USSD session. USSD sessions are queries for more
+Aborts an active USSD session.  USSD sessions are queries for more
 information by the provider; they can take the form of simple menus
 with numbers to choose the menu entries or a query to enter
 a top up code.
@@ -73,10 +73,10 @@ Shows the online help.
 
 =back
 
-The following options aren't meant for everyday usage, bus as
+The following options aren't meant for everyday usage, but as
 diagnostic aids in development or for the pathologically curious.
 Please be reminded again that any logs or debugging output will
-show your PIN if you're using option C<< --pin <PIN> >>! So use
+show your PIN if you're using option C<< --pin <PIN> >>!  So use
 with care.
 
 =over
@@ -90,7 +90,7 @@ Clearly more a debugging help than anything else.
 
 =item B<--debug|-d>
 
-Switches debug mode on. The script will then explain its actions 
+Switches debug mode on.  The script will then explain its actions 
 and their results in high detail. 
 
 =back
@@ -112,7 +112,7 @@ List of interesting things:
 
 =over
 
-=item * German Telecom/D1
+=item * German Telecom/D1 (congstar)
 
 =over
 
@@ -122,42 +122,14 @@ Show prepaid account balance.
 
 =item * B<< *101*I<cashcode># >>
 
-Top up your prepaid account with a "Cashcode" (top up code). Please
-note that a cash code consists only of numbers! Dashes in your cash
-code are simply used for readability, don't enter them. Use only the
+Top up your prepaid account with a "Cashcode" (top up code).  Please
+note that a cash code consists only of numbers!  Dashes in your cash
+code are simply used for readability, don't enter them.  Use only the
 numbers.
 
 =item * B<*135#>
 
 Displays your own phone number.
-
-=back
-
-=item * O2 & Reseller (Tchibo, ...)
-
-=over
-
-=item * B<*100#>
-
-Tchibo-Mobile only: A menu with further options. This will start
-an USSD session.
-
-=item * B<*101#>
-
-Show prepaid account balance.
-
-=item * B<*102#>
-
-Prepaid account validity.
-
-=item * B<*103*I<topupcode>#>
-
-Topping up your prepaid account. Please note that a top up code consists
-of numbery only! Dashes in your top up code are simply used for 
-readability - don't enter them. Use only the numbers.
-
-Sending '*103#' without a top up code will start a USSD session asking
-for the code.
 
 =back
 
@@ -175,6 +147,34 @@ Displays costs of your last connection.
 
 =back
 
+=item * O2 (Tchibo, FONIC, ...)
+
+=over
+
+=item * B<*100#>
+
+O2/Tchibo-Mobile: A menu with further options.  This will start
+an USSD session.
+
+=item * B<*101#>
+
+Show prepaid account balance.
+
+=item * B<*102#>
+
+Prepaid account validity.
+
+=item * B<*103*I<topupcode>#>
+
+Topping up your prepaid account. Please note that a top up code consists
+of numbers only!  Dashes in your top up code are simply used for 
+readability - don't enter them.  Use only the numbers.
+
+Sending '*103#' without a top up code will start a USSD session asking
+for the code.
+
+=back
+
 =item * E-Plus & Resellers
 
 =over
@@ -185,11 +185,11 @@ Show prepaid account balance.
 
 =item * B<*104*I<cashcode>#>
 
-Top up your prepaid account with a "Cashcode" (top up code). Please note
-that a cash code consists only of numbers! Dashes in your cash code are
-simply used for readability, don't enter them. Use only the numbers.
+Top up your prepaid account with a "Cashcode" (top up code).  Please note
+that a cash code consists only of numbers!  Dashes in your cash code are
+simply used for readability, don't enter them.  Use only the numbers.
 
-This works for the E-Plus net, not only for the E-Plus provider. So you
+This works for the E-Plus net, not only for the E-Plus provider.  So you
 can use this USSD query for E-Plus resellers (AldiTalk, Simyo, Blue, ...)
 too.
 
