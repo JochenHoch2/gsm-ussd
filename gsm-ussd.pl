@@ -31,6 +31,7 @@ use Getopt::Long;
 use Pod::Usage;
 use Encode  qw(encode decode);
 use POSIX   qw(:termios_h);
+use Fcntl;
 
 use Expect;     # External dependency
 
@@ -41,6 +42,7 @@ use Expect;     # External dependency
 
 our $VERSION            = '0.3.1';          # Our version
 my $modemport           = '/dev/ttyUSB1';   # AT port of a Huawei E160 modem
+my $modem_lockfile      = undef;            # The modem lockfile (e.g. /var/run/LCK..ttyUSB1)
 my $modem_fh            = undef;
 my $timeout_for_answer  = 20;               # Timeout for modem answers in seconds
 my @ussd_queries        = ( '*100#' );      # Prepaid account query as default
@@ -359,6 +361,14 @@ binmode (STDOUT, ':utf8');
 
 check_modemport ($modemport);
 
+$modem_lockfile = lock_modemport  ($modemport);
+if ( ! defined $modem_lockfile ) {
+    print STDERR "Can't get lock file for $modemport!\n";
+    print STDERR "* Wrong modem device? (use -m <dev>)?\n";
+    print STDERR "* Stale lock file for $modemport in /var/lock?";
+    exit $exit_error;
+}
+
 DEBUG ("Opening modem");
 if ( ! open $modem_fh, '+<:raw', $modemport ) {
     print STDERR "Modem port \"$modemport\" seems in order, but cannot open it anyway:\n$!\n";
@@ -376,7 +386,7 @@ if (defined $expect_logfilename) {
 
 if ( ! check_for_modem() ) {
     print STDERR "No modem found at device \"$modemport\". Possible causes:\n";
-    print STDERR "* Wrong modem device (use -m <dev>?)\n";
+    print STDERR "* Wrong modem device (use -m <dev>)?\n";
     print STDERR "* Modem broken (no reaction to AT)\n";
     exit $exit_error;
 }
@@ -473,6 +483,10 @@ END {
         DEBUG ("END: Closing modem interface");
         close $modem_fh;
     }
+    if ( defined ($modem_lockfile) ) {
+        DEBUG ("Removing lock file $modem_lockfile");
+        unlock_modemport($modem_lockfile);
+    }
     $? = $exitcode;
 }
 
@@ -536,6 +550,50 @@ sub check_modemport {
         print STDERR "Set correct rights for \"$mp\" with chmod?\n";
         print STDERR "Perhaps use another device with -m?\n";
         exit $exit_error;
+    }
+}
+
+
+########################################################################
+# Function: lock_modemport
+# Args:     $modem_device   - The device to set a lock file for
+# Returns:  The lock file name
+#           undef if no lockfilename can be worked out
+sub lock_modemport {
+    my ($modem_device) = @_;
+
+    my $lock_dir        = '/var/lock';
+    my ($lock_filename) = $modem_device =~ m#/([^/]*)$#;
+    if ( ! defined $lock_filename || $lock_filename eq '' ) {
+        print STDERR "Modem device \"$modem_device\" looks strange, can't lock it\n";
+        return undef;
+    }
+    my $lock_file = $lock_dir . '/LCK..' . $lock_filename;
+    my $lock_handle;
+    if ( ! sysopen $lock_handle, $lock_file, O_CREAT|O_WRONLY|O_EXCL, 0644 ) {
+        print STDERR "Can't get lockfile $lock_file - probably already in use!\n";
+        return undef;
+    }
+    print $lock_handle "$$\n";
+    close $lock_handle;
+    DEBUG ("Lock $lock_file set");
+    return $lock_file;
+}
+
+
+########################################################################
+# Function: unlock_modemport
+# Args:     $lock_filename   - Lockfile to delete
+# Returns:  Nothing.
+sub unlock_modemport {
+    my ($lock_filename) = @_;
+
+    if ( ! -f $lock_filename ) {
+        DEBUG ("Lock file \"$lock_filename\" doesn't exist or is not a normal file!");
+        return;
+    }
+    if ( ! unlink $lock_filename ) {
+        DEBUG ("Can't remove lock file \"$lock_filename\": $!");
     }
 }
 
