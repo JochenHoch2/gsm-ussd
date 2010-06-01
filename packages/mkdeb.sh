@@ -66,8 +66,8 @@ function copy_gsm-ussd_files {
 		set -e
 
 		# Binaries
-		cp ../gsm-ussd.pl $BIN_PATH/gsm-ussd
-		cp ../xussd.sh $BIN_PATH/xussd
+		cp ../bin/gsm-ussd.pl $BIN_PATH/gsm-ussd
+		cp ../bin/xussd.sh $BIN_PATH/xussd
 
 		# Man pages
 		cp ../docs/gsm-ussd.en.man $MAN_EN_PATH/gsm-ussd.1

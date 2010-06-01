@@ -21,8 +21,8 @@ all:		doc
 
 install:	all
 	install -d $(BIN_PATH)
-	install gsm-ussd.pl $(BIN_PATH)/gsm-ussd
-	install xussd.sh $(BIN_PATH)/xussd
+	install bin/gsm-ussd.pl $(BIN_PATH)/gsm-ussd
+	install bin/xussd.sh $(BIN_PATH)/xussd
 
 doc:	$(MANS)
 
