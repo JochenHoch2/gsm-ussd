@@ -37,6 +37,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 use GSMUSSD::Loggit;
+use GSMUSSD::DCS;
 
 use Expect;     # External dependency
 
@@ -1049,8 +1050,9 @@ sub interpret_ussd_data {
         $log->DEBUG ("CUSD message has no encoding, interpreting as cleartext");
         return $response;
     }
+    my $dcs = GSMUSSD::DCS->new($encoding);
 
-    if ( dcs_is_default_alphabet ( $encoding ) ) {
+    if ( $dcs->is_default_alphabet() ) {
         $log->DEBUG ("Encoding \"$encoding\" says response is in default alphabet");
         if ( $use_cleartext ) {
             $log->DEBUG ("Modem uses cleartext, interpreting message as cleartext");
@@ -1068,11 +1070,11 @@ sub interpret_ussd_data {
         }
         # NOTREACHED
     }
-    elsif ( dcs_is_ucs2 ( $encoding ) ) {
+    elsif ( $dcs->is_ucs2() ) {
         $log->DEBUG ("Encoding \"$encoding\" says response is in UCS2-BE");
         return decode ('UCS-2BE', hex_to_string ($response));
     }
-    elsif ( dcs_is_8bit ( $encoding ) ) {
+    elsif ( $dcs->is_8bit() ) {
         $log->DEBUG ("Encoding \"$encoding\" says response is in 8bit");
         return hex_to_string ($response); # Should this be cleartext?
     }
@@ -1395,78 +1397,6 @@ sub gsm_unpack {
 # Returns:  String containing 7 bit values of the arg per character
 sub gsm_pack {
 	return repack_bits(7, 8, $_[0]);
-}
-
-
-#######################################################################
-# Function: dcs_is_default_alphabet
-# Args:     $enc    - the USSD dcs
-# Returns:  1   - dcs indicates default alpabet
-#           0   - dcs does not indicate default alphabet
-sub dcs_is_default_alphabet {
-    my ($enc) = @_;
-
-    if ( ! bit_is_set (6, $enc) && ! bit_is_set (7, $enc) ) {
-        return 1;
-    }
-    if (     bit_is_set(6, $enc)
-        && ! bit_is_set (7, $enc)
-        && ! bit_is_set (2, $enc)
-        && ! bit_is_set (3, $enc)
-    ) {
-        return 1;
-    }
-    return 0;
-}
-
-
-#######################################################################
-# Function: dcs_is_ucs2
-# Args:     $enc    - the USSD dcs
-# Returns:  1   - dcs indicates UCS2-BE
-#           0   - dcs does not indicate UCS2-BE
-sub dcs_is_ucs2 {
-    my ($enc) = @_;
-
-    if (     bit_is_set (6, $enc)
-        && ! bit_is_set (7, $enc)
-        && ! bit_is_set (2, $enc)
-        &&   bit_is_set (3, $enc)
-    ) {
-        return 1;
-    }
-    return 0;
-}
-
-
-#######################################################################
-# Function: dcs_is_8bit
-# Args:     $enc    - the USSD dcs
-# Returns:  1   - dcs indicates 8bit
-#           0   - dcs does not indicate 8bit
-sub dcs_is_8bit {
-    my ($enc) = @_;
-
-    if (     bit_is_set (6, $enc)
-        && ! bit_is_set (7, $enc)
-        &&   bit_is_set (2, $enc)
-        && ! bit_is_set (3, $enc)
-    ) {
-        return 1;
-    }
-    return 0;
-}
-
-
-########################################################################
-# Function: bit_is_set
-# Args:     $bit - Number of the bit to test
-#           $val - Value to test bit $bit against
-# Returns:  1   - Bit is set to 1
-#           0   - Bit is set to 0
-sub bit_is_set {
-    my ($bit, $val) = @_;
-    return $val & ( 2 ** $bit );
 }
 
 
