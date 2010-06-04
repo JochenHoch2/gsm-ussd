@@ -36,6 +36,8 @@ use Fcntl;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
+use GSMUSSD::Loggit;
+
 use Expect;     # External dependency
 
 
@@ -60,6 +62,7 @@ my @all_args            = @ARGV;            # Backup of args to print them for d
 
 my $num_net_reg_retries = 10;               # Number of retries if modem is not already
                                             # registered in a net
+my $log                 = GSMUSSD::Loggit->new();
 
 # Consts
 my $success         =  1;
@@ -118,7 +121,7 @@ my %expect_programs = (
         [ qr/^AT([^\r\n]*)\r/i
             =>  sub {
                     my $exp = shift;
-                    DEBUG("AT found, -> ",$exp->match() );
+                    $log->DEBUG("AT found, -> ",$exp->match() );
                     exp_continue_timeout;
                 }
         ],
@@ -126,7 +129,7 @@ my %expect_programs = (
         [ qr/\r\n(OK|ERROR)\r\n/i
             =>  sub {
                     my $exp = shift;
-                    DEBUG ("OK/ERROR found: ", ($exp->matchlist())[0] );
+                    $log->DEBUG ("OK/ERROR found: ", ($exp->matchlist())[0] );
                 }
         ],
     ],
@@ -156,14 +159,14 @@ my %expect_programs = (
                 my $exp = shift;
                 my $match = $exp->match();
                 $match =~ s/(?:^\s+|\s+$)//g;
-                DEBUG ("Expected answer: ", $match);
+                $log->DEBUG ("Expected answer: ", $match);
             }
         ],
         # AT command (TTY echo of input)
         [ qr/^AT([^\r\n]*)\r/i
             =>  sub {
                     my $exp = shift;
-                    DEBUG("AT found, -> ",$exp->match() );
+                    $log->DEBUG("AT found, -> ",$exp->match() );
                     exp_continue_timeout;
                 }
         ],
@@ -171,7 +174,7 @@ my %expect_programs = (
         # net. Carry on!
         [ qr/\r\n(OK)\r\n/i
             =>  sub {
-                    DEBUG ("OK found, continue waiting for result"); 
+                    $log->DEBUG ("OK found, continue waiting for result"); 
                     exp_continue;
                 }
         ],
@@ -180,7 +183,7 @@ my %expect_programs = (
         # as no more meaningful results can be expected.
         [ qr/\r\n(ERROR)\r\n/i
             =>  sub {
-                    DEBUG ("ERROR found, aborting"); 
+                    $log->DEBUG ("ERROR found, aborting"); 
                 }
         ],
     ],
@@ -354,8 +357,8 @@ my @pdu_modems = (
 ########################################################################
 # Main
 ########################################################################
-DEBUG ("Start, Version $VERSION, Args: ", @all_args);
-DEBUG ("Setting output to UTF-8");
+$log->DEBUG ("Start, Version $VERSION, Args: ", @all_args);
+$log->DEBUG ("Setting output to UTF-8");
 binmode (STDOUT, ':utf8');
 
 check_modemport ($modemport);
@@ -368,7 +371,7 @@ if ( ! defined $modem_lockfile ) {
     exit $exit_error;
 }
 
-DEBUG ("Opening modem");
+$log->DEBUG ("Opening modem");
 if ( ! open $modem_fh, '+<:raw', $modemport ) {
     print STDERR "Modem port \"$modemport\" seems in order, but cannot open it anyway:\n$!\n";
     exit $exit_error;
@@ -377,7 +380,7 @@ if ( ! open $modem_fh, '+<:raw', $modemport ) {
 my $saved_stty_value = save_serial_opts ($modem_fh);
 set_serial_opts ( $modem_fh );
 
-DEBUG ("Initialising Expect");
+$log->DEBUG ("Initialising Expect");
 $expect	= Expect->exp_init($modem_fh);
 if (defined $expect_logfilename) {
     $expect->log_file($expect_logfilename, 'w');
@@ -398,11 +401,11 @@ if ( ! defined $modem_model ) {
 }
 if ( ! defined $use_cleartext ) {
     if ( modem_needs_pdu_format ( $modem_model ) ) {
-        DEBUG ("Modem type \"$modem_model\" needs PDU format for USSD query.");
+        $log->DEBUG ("Modem type \"$modem_model\" needs PDU format for USSD query.");
         $use_cleartext = 0;
     }
     else {
-        DEBUG ("Modem type \"$modem_model\" needs cleartext for USSD query.");
+        $log->DEBUG ("Modem type \"$modem_model\" needs cleartext for USSD query.");
         $use_cleartext = 1;
     }
 }
@@ -411,14 +414,14 @@ else {
 }
 
 if ( pin_needed() ) {
-    DEBUG ("PIN needed");
+    $log->DEBUG ("PIN needed");
     if ( ! defined $pin ) {
         print STDERR "SIM card is locked, but no PIN to unlock given.\n";
         print STDERR "Use \"-p <pin>\"!\n";
         exit $exit_nopin;
     }
     if ( enter_pin ($pin) ) {
-        DEBUG ("Pin $pin accepted.");
+        $log->DEBUG ("Pin $pin accepted.");
     }
     else {
         print STDERR "SIM card is locked, PIN $pin not accepted!\n";
@@ -458,7 +461,7 @@ else {
     }
 }
 
-DEBUG ("Shutting down");
+$log->DEBUG ("Shutting down");
 exit $exit_success; # will give control to END
 
 
@@ -472,18 +475,18 @@ exit $exit_success; # will give control to END
 # Args:     None
 # Returns:  Nothing. Will be called after exit().
 END {
-    DEBUG ("END: Cleaning up");
+    $log->DEBUG ("END: Cleaning up");
     my $exitcode = $?;  # Save it
     if ( defined $modem_fh) {
         if ( defined $saved_stty_value ) {
-            DEBUG ("END: Resetting serial interface");
+            $log->DEBUG ("END: Resetting serial interface");
             restore_serial_opts($modem_fh, $saved_stty_value);
         }
-        DEBUG ("END: Closing modem interface");
+        $log->DEBUG ("END: Closing modem interface");
         close $modem_fh;
     }
     if ( defined ($modem_lockfile) ) {
-        DEBUG ("Removing lock file $modem_lockfile");
+        $log->DEBUG ("Removing lock file $modem_lockfile");
         unlock_modemport($modem_lockfile);
     }
     $? = $exitcode;
@@ -551,7 +554,7 @@ sub lock_modemport {
     }
     print $lock_handle "$$\n";
     close $lock_handle;
-    DEBUG ("Lock $lock_file set");
+    $log->DEBUG ("Lock $lock_file set");
     return $lock_file;
 }
 
@@ -564,11 +567,11 @@ sub unlock_modemport {
     my ($lock_filename) = @_;
 
     if ( ! -f $lock_filename ) {
-        DEBUG ("Lock file \"$lock_filename\" doesn't exist or is not a normal file!");
+        $log->DEBUG ("Lock file \"$lock_filename\" doesn't exist or is not a normal file!");
         return;
     }
     if ( ! unlink $lock_filename ) {
-        DEBUG ("Can't remove lock file \"$lock_filename\": $!");
+        $log->DEBUG ("Can't remove lock file \"$lock_filename\": $!");
     }
 }
 
@@ -582,7 +585,7 @@ sub save_serial_opts {
     my ($interface) = @_;
     my $termdata;
     
-    DEBUG ("Saving serial state");
+    $log->DEBUG ("Saving serial state");
     my $termios = POSIX::Termios->new();
 
     $termios->getattr(fileno($interface));
@@ -618,7 +621,7 @@ sub save_serial_opts {
 sub restore_serial_opts {
     my ($interface, $termdata) = @_;
     
-    DEBUG ("Restore serial state");
+    $log->DEBUG ("Restore serial state");
 
     my $termios = POSIX::Termios->new();
 
@@ -642,7 +645,7 @@ sub restore_serial_opts {
 
     my $result = $termios->setattr(fileno($interface));
     if ( ! defined $result ) {
-        DEBUG ("Could not restore serial state");
+        $log->DEBUG ("Could not restore serial state");
         return 0;
     }
     return 1;
@@ -657,7 +660,7 @@ sub restore_serial_opts {
 sub set_serial_opts {
     my ($interface) = @_;
     
-    DEBUG ("Setting serial state");
+    $log->DEBUG ("Setting serial state");
 
     my $termios = POSIX::Termios->new();
     $termios->getattr(fileno($interface));
@@ -671,7 +674,7 @@ sub set_serial_opts {
 
     my $result = $termios->setattr(fileno($interface));
     if ( ! defined $result ) {
-        DEBUG ("Could not set serial state");
+        $log->DEBUG ("Could not set serial state");
         return 0;
     }
     return 1;
@@ -688,14 +691,14 @@ sub set_serial_opts {
 # to writing "AT" into the file handle in question.
 sub check_for_modem {
 
-    DEBUG ("Starting modem check (AT)");
+    $log->DEBUG ("Starting modem check (AT)");
     my $result = send_command ( "AT", 'wait_for_OK' );
     if ( $result->{ok} ) {
-        DEBUG ("Modem found (AT->OK)");
+        $log->DEBUG ("Modem found (AT->OK)");
         return 1;
     }
     else {
-        DEBUG ("No modem found, error: $result->{description}");
+        $log->DEBUG ("No modem found, error: $result->{description}");
         return 0;
     }
 }
@@ -713,20 +716,20 @@ sub set_modem_echo {
 
     if ($echo_on) {
         $modem_echo_command = 'ATE1';
-        DEBUG ("Enabling modem echo ($modem_echo_command)");
+        $log->DEBUG ("Enabling modem echo ($modem_echo_command)");
     }
     else {
         $modem_echo_command = 'ATE0';
-        DEBUG ("Disabling modem echo ($modem_echo_command)");
+        $log->DEBUG ("Disabling modem echo ($modem_echo_command)");
     }
 
     my $result = send_command ( $modem_echo_command, 'wait_for_OK' );
     if ( $result->{ok} ) { 
-        DEBUG ("$modem_echo_command successful");
+        $log->DEBUG ("$modem_echo_command successful");
         return 1;
     }   
     else {
-        DEBUG ("$modem_echo_command failed, error: $result->{description}");
+        $log->DEBUG ("$modem_echo_command failed, error: $result->{description}");
         return 0;
     }   
 }
@@ -742,14 +745,14 @@ sub set_modem_echo {
 # to see if it's a E160-type modem.
 sub get_modem_model {
 
-    DEBUG ("Querying modem type");
+    $log->DEBUG ("Querying modem type");
     my $result = send_command ( "AT+CGMM", 'wait_for_OK' );
     if ( $result->{ok} ) {
-        DEBUG ("Modem type found: ", $result->{description} );
+        $log->DEBUG ("Modem type found: ", $result->{description} );
         return $result->{description};
     }
     else {
-        DEBUG ("No modem type found: ", $result->{description});
+        $log->DEBUG ("No modem type found: ", $result->{description});
         return undef;
     }
 }
@@ -762,31 +765,31 @@ sub get_modem_model {
 #           1   PIN (or PUK) still needed, SIM card still locked
 sub pin_needed {
 
-    DEBUG ("Starting SIM state query (AT+CPIN?)");
+    $log->DEBUG ("Starting SIM state query (AT+CPIN?)");
     my $result = send_command ( 'AT+CPIN?', 'wait_for_OK' );
     if ( $result->{ok} ) {
-        DEBUG ("Got answer for SIM state query");
+        $log->DEBUG ("Got answer for SIM state query");
         if ( $result->{match} eq 'OK') {
             if ( $result->{description} =~ m/READY/ ) {
-                DEBUG ("SIM card is unlocked");
+                $log->DEBUG ("SIM card is unlocked");
                 return 0;
             }
             elsif ( $result->{description} =~ m/SIM PIN/ ) {
-                DEBUG ("SIM card is locked");
+                $log->DEBUG ("SIM card is locked");
                 return 1;
             }
             else {
-                DEBUG ("Couldn't parse SIM state query result: " . $result->{description});
+                $log->DEBUG ("Couldn't parse SIM state query result: " . $result->{description});
                 return 1;
             }
         }
         else {
-            DEBUG ("SIM card locked - failed query? -> " . $result->{match} );
+            $log->DEBUG ("SIM card locked - failed query? -> " . $result->{match} );
             return 1;
         }
     }
     else {
-        DEBUG (" SIM state query failed, error: " . $result->{description} );
+        $log->DEBUG (" SIM state query failed, error: " . $result->{description} );
         return 1;
     }
 }
@@ -800,14 +803,14 @@ sub pin_needed {
 sub enter_pin {
     my ($pin) = @_;
 
-    DEBUG ("Unlocking SIM using PIN $pin");
+    $log->DEBUG ("Unlocking SIM using PIN $pin");
     my $result = send_command ( "AT+CPIN=$pin", 'wait_for_OK' );
     if ( $result->{ok} ) {
-        DEBUG ("SIM card unlocked: ", $result->{match} );
+        $log->DEBUG ("SIM card unlocked: ", $result->{match} );
         return 1;
     }
     else {
-        DEBUG ("SIM card still locked, error: ", $result->{description});
+        $log->DEBUG ("SIM card still locked, error: ", $result->{description});
         return 0;
     }
 }
@@ -824,65 +827,65 @@ sub get_net_registration_state {
     my $wait_time_between_net_checks    = 3;
     my $last_state_message              = '';
 
-    DEBUG ("Waiting for net registration, max $max_tries tries");
+    $log->DEBUG ("Waiting for net registration, max $max_tries tries");
     while ($num_tries <= $max_tries) {
-        DEBUG ("Try: $num_tries");
+        $log->DEBUG ("Try: $num_tries");
         my $result = send_command ( 'AT+CREG?', 'wait_for_OK' );
         if ( $result->{ok} ) {
-            DEBUG ('Net registration query result received, parsing');
+            $log->DEBUG ('Net registration query result received, parsing');
             my ($n, $stat) = $result->{description} =~ m/\+CREG:\s+(\d),(\d)/i;
             if ( ! defined $n || ! defined $stat) {
                 $last_state_message = 'Cannot parse +CREG answer: ' . $result->{description}; 
-                DEBUG ( $last_state_message );
+                $log->DEBUG ( $last_state_message );
                 return ( 0, $last_state_message );
             }
             if ( $stat == 0 ) {
                 $last_state_message = 'Not registered, MT not searching a new operator to register to';
-                DEBUG ( $last_state_message );
+                $log->DEBUG ( $last_state_message );
                 return ( 0, $last_state_message );
             }
             elsif ( $stat == 1 ) {
                 $last_state_message = 'Registered, home network';
-                DEBUG ( $last_state_message );
+                $log->DEBUG ( $last_state_message );
                 if ( $num_tries != 1 ) {
-                    DEBUG ( 'Sleeping one more time for settling in');
+                    $log->DEBUG ( 'Sleeping one more time for settling in');
                     sleep $wait_time_between_net_checks;
                 }
                 return ( 1, $last_state_message );
             }
             elsif ( $stat == 2 ) {
                 $last_state_message = 'Not registered, currently searching new operator to register to';
-                DEBUG ( $last_state_message );
+                $log->DEBUG ( $last_state_message );
             }
             elsif ( $stat == 3) {
                 $last_state_message = 'Registration denied'; 
-                DEBUG ( $last_state_message );
+                $log->DEBUG ( $last_state_message );
                 return ( 0, $last_state_message );
             }
             elsif ( $stat == 4) {
                 $last_state_message = 'Registration state unknown';
-                DEBUG ( $last_state_message );
+                $log->DEBUG ( $last_state_message );
             }
             elsif ( $stat == 5 ) {
                 $last_state_message = 'Registered, roaming';
-                DEBUG ( $last_state_message );
+                $log->DEBUG ( $last_state_message );
                 if ( $num_tries != 1 ) {
-                    DEBUG ( 'Sleeping one more time for settling in');
+                    $log->DEBUG ( 'Sleeping one more time for settling in');
                     sleep $wait_time_between_net_checks;
                 }
                 return ( 1, $last_state_message );
             }
             else {
                 $last_state_message = "Cannot understand net reg state code $stat";
-                DEBUG ( $last_state_message );
+                $log->DEBUG ( $last_state_message );
             }
         }
         else {
             $last_state_message = 'Querying net registration failed, error: ' . $result->{description}; 
-            DEBUG ( $last_state_message );
+            $log->DEBUG ( $last_state_message );
             return ( 0, $last_state_message );
         }
-        DEBUG ("Sleeping for $wait_time_between_net_checks seconds");
+        $log->DEBUG ("Sleeping for $wait_time_between_net_checks seconds");
         sleep $wait_time_between_net_checks;
         ++ $num_tries;
     }
@@ -936,7 +939,7 @@ sub is_valid_ussd_query {
 sub do_ussd_query {
     my ( $query ) = @_;
 
-    DEBUG ("Starting USSD query \"$query\"");
+    $log->DEBUG ("Starting USSD query \"$query\"");
 
     my $result = send_command (
         ussd_query_cmd($query, $use_cleartext),
@@ -944,7 +947,7 @@ sub do_ussd_query {
     );
 
     if ( $result->{ok} ) {
-        DEBUG ("USSD query successful, answer received");
+        $log->DEBUG ("USSD query successful, answer received");
         my ($response_type,$response,$encoding)
             = $result->{description}
             =~ m/
@@ -959,7 +962,7 @@ sub do_ussd_query {
 
         if ( ! defined $response_type ) {
             # Didn't the RE match?
-            DEBUG ("Can't parse CUSD message: \"", $result->{description}, "\"");
+            $log->DEBUG ("Can't parse CUSD message: \"", $result->{description}, "\"");
             return {
                 ok  => $fail,
                 msg =>  "Can't understand modem answer: \""
@@ -967,42 +970,42 @@ sub do_ussd_query {
             };
         }
         elsif ( $response_type == 0 ) {
-            DEBUG ("USSD response type: No further action required (0)");
+            $log->DEBUG ("USSD response type: No further action required (0)");
         }
         elsif ( $response_type == 1 ) {
-            DEBUG ("USSD response type: Further action required (1)");
+            $log->DEBUG ("USSD response type: Further action required (1)");
             print STDERR "USSD session open, to cancel use \"gsm-ussd -c\".\n";
         }
         elsif ( $response_type == 2 ) {
             my $msg = "USSD response type: USSD terminated by network (2)";
-            DEBUG ($msg);
+            $log->DEBUG ($msg);
             return { ok => $fail, msg => $msg };
         }
         elsif ( $response_type == 3 ) {
             my $msg = ("USSD response type: Other local client has responded (3)");
-            DEBUG ($msg);
+            $log->DEBUG ($msg);
             return { ok => $fail, msg => $msg };
         }
         elsif ( $response_type == 4 ) {
             my $msg = ("USSD response type: Operation not supported (4)");
-            DEBUG ($msg);
+            $log->DEBUG ($msg);
             return { ok => $fail, msg => $msg };
         }
         elsif ( $response_type == 5 ) {
             my $msg = "USSD response type: Network timeout (5)";
-            DEBUG ($msg);
+            $log->DEBUG ($msg);
             return { ok => $fail, msg => $msg };
         }
         else {
             my $msg = "CUSD message has unknown response type \"$response_type\"";
-            DEBUG ($msg);
+            $log->DEBUG ($msg);
             return { ok => $fail, msg => $msg };
         }
         # Only reached if USSD response type is 0 or 1
         return { ok => $success, msg => interpret_ussd_data ($response, $encoding) };
     }
     else {
-        DEBUG ("USSD query failed, error: " . $result->{description});
+        $log->DEBUG ("USSD query failed, error: " . $result->{description});
         return { ok => $fail, msg => $result->{description} };
     }
 }
@@ -1019,16 +1022,16 @@ sub do_ussd_query {
 #                       to the value of 'ok'.
 sub cancel_ussd_session {
 
-    DEBUG ('Trying to cancel USSD session');
+    $log->DEBUG ('Trying to cancel USSD session');
     my $result = send_command ( "AT+CUSD=2\r", 'wait_for_OK' );
     if ( $result->{ok} ) {
         my $msg = 'USSD cancel request successful';
-        DEBUG ($msg);
+        $log->DEBUG ($msg);
         return { ok => $success, msg => $msg };
     }
     else {
         my $msg = 'No USSD session to cancel.';
-        DEBUG ($msg);
+        $log->DEBUG ($msg);
         return { ok => $fail, msg => $msg };
     }
 }
@@ -1043,14 +1046,14 @@ sub interpret_ussd_data {
     my ($response, $encoding) = @_;
 
     if ( ! defined $encoding ) {
-        DEBUG ("CUSD message has no encoding, interpreting as cleartext");
+        $log->DEBUG ("CUSD message has no encoding, interpreting as cleartext");
         return $response;
     }
 
     if ( dcs_is_default_alphabet ( $encoding ) ) {
-        DEBUG ("Encoding \"$encoding\" says response is in default alphabet");
+        $log->DEBUG ("Encoding \"$encoding\" says response is in default alphabet");
         if ( $use_cleartext ) {
-            DEBUG ("Modem uses cleartext, interpreting message as cleartext");
+            $log->DEBUG ("Modem uses cleartext, interpreting message as cleartext");
             return $response;
         }
         elsif ( $encoding == 0 ) {
@@ -1060,21 +1063,21 @@ sub interpret_ussd_data {
             return decode ('gsm0338', gsm_unpack( hex_to_string( $response )));
         }
         else {
-            DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
+            $log->DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
             return hex_to_string( $response );
         }
         # NOTREACHED
     }
     elsif ( dcs_is_ucs2 ( $encoding ) ) {
-        DEBUG ("Encoding \"$encoding\" says response is in UCS2-BE");
+        $log->DEBUG ("Encoding \"$encoding\" says response is in UCS2-BE");
         return decode ('UCS-2BE', hex_to_string ($response));
     }
     elsif ( dcs_is_8bit ( $encoding ) ) {
-        DEBUG ("Encoding \"$encoding\" says response is in 8bit");
+        $log->DEBUG ("Encoding \"$encoding\" says response is in 8bit");
         return hex_to_string ($response); # Should this be cleartext?
     }
     else {
-        DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
+        $log->DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
         return hex_to_string( $response );
     }
     # NOTREACHED
@@ -1114,7 +1117,7 @@ sub send_command {
         exit $exit_bug;
     }
 
-    DEBUG ("Sending command: $cmd");
+    $log->DEBUG ("Sending command: $cmd");
     $expect->send("$cmd\015");
 
     my (
@@ -1241,7 +1244,7 @@ sub ignore_state_line {
     my $exp = shift;
     my ($state_name, $result) = $exp->matchlist();
 
-    DEBUG("$state_name: $result, ignored");
+    $log->DEBUG("$state_name: $result, ignored");
     exp_continue_timeout;
 }
 
@@ -1255,7 +1258,7 @@ sub network_error {
     my $exp = shift;
     my ($error_msg_type,$error_msg_value) = $exp->matchlist();
 
-    DEBUG ("Network error $error_msg_type with data \"$error_msg_value\" detected.");
+    $log->DEBUG ("Network error $error_msg_type with data \"$error_msg_value\" detected.");
 }
 
 
@@ -1464,17 +1467,6 @@ sub dcs_is_8bit {
 sub bit_is_set {
     my ($bit, $val) = @_;
     return $val & ( 2 ** $bit );
-}
-
-
-########################################################################
-# Function: DEBUG
-# Args:     Strings to print with a [DEBUG] prefix
-# Returns:  Void
-sub DEBUG {
-    if ($debug) {
-        print STDERR '[DEBUG] ' . join(' ',@_) . $/ ;
-    }
 }
 
 
