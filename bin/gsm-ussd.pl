@@ -63,7 +63,6 @@ my @all_args            = @ARGV;            # Backup of args to print them for d
 
 my $num_net_reg_retries = 10;               # Number of retries if modem is not already
                                             # registered in a net
-my $log                 = GSMUSSD::Loggit->new();
 
 # Consts
 my $success         =  1;
@@ -93,6 +92,10 @@ or pod2usage(-verbose => 0);
 if ( $show_online_help ) {
     pod2usage(-verbose => 1);
 }
+
+
+# Set our logger
+my $log = GSMUSSD::Loggit->new($debug);
 
 # Further arguments are USSD queries
 if ( @ARGV != 0 ) {
