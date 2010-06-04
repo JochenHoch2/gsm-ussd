@@ -25,6 +25,7 @@
 
 use strict;
 use warnings;
+use sigtrap qw(die normal-signals);
 use 5.008;                  # Encode::GSM0338 only vailable since 5.8
 
 use Getopt::Long;
@@ -91,10 +92,6 @@ if ( $show_online_help ) {
 if ( @ARGV != 0 ) {
     @ussd_queries = @ARGV;
 }
-
-# Set up signal handler for INT and TERM
-$SIG{'INT'}     = \&clean_exit;
-$SIG{'TERM'}    = \&clean_exit;
 
 # The Expect programs differ in the way they react to modem answers
 my %expect_programs = (
@@ -488,30 +485,6 @@ END {
         unlock_modemport($modem_lockfile);
     }
     $? = $exitcode;
-}
-
-
-########################################################################
-# Function: clean_exit
-# Purpose:  This is the signal handler for SIGINT & SIGTERM
-# Args:     $signal - Name of the caught signal
-# Returns:  Nothing, just exits giving control to the END cleanup
-sub clean_exit {
-    my ($signal) = @_;
-
-    if ($signal eq 'INT' ) {
-        DEBUG ("INT caught, terminating");
-        exit 128 + 2;
-    }
-    elsif ($signal eq 'TERM' ) {
-        DEBUG ("TERM caught, terminating");
-        exit 128 + 15; 
-    }
-    else {
-        DEBUG ("Signal $signal caught, terminating. This should not have happened.");
-        exit $exit_bug;
-    }
-    # NOTREACHED
 }
 
 
