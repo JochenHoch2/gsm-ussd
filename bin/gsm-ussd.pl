@@ -33,6 +33,8 @@ use Pod::Usage;
 use Encode  qw(encode decode);
 use POSIX   qw(:termios_h);
 use Fcntl;
+use FindBin;
+use lib "$FindBin::RealBin/../lib";
 
 use Expect;     # External dependency
 
