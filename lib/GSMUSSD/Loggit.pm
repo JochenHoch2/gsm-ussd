@@ -5,16 +5,21 @@ use warnings;
 
 package GSMUSSD::Loggit;
 
+my $self = undef;
+
 sub new {
 	my $class = shift;
-	my $self = {};
-	bless $self, $class;
+	if ( ! defined $self) {
+		$self = {};
+		bless $self, $class;
+	}
 	return $self;
 }
 
 sub DEBUG {
 	my ($self, @msgs) = @_;
-	print STDERR '[DEBUG] ' . join (' ', @msgs), $/;
+	my ($callerpackage, undef, undef) = caller;
+	print STDERR "[DEBUG][$callerpackage] " . join (' ', @msgs), $/;
 }
 
 1;
