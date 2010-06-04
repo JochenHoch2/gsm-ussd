@@ -31,13 +31,14 @@ use 5.008;                  # Encode::GSM0338 only vailable since 5.8
 use Getopt::Long;
 use Pod::Usage;
 use Encode  qw(encode decode);
-use POSIX   qw(:termios_h);
+# use POSIX   qw(:termios_h);
 use Fcntl;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 use GSMUSSD::Loggit;
 use GSMUSSD::DCS;
+use GSMUSSD::Stty;
 
 use Expect;     # External dependency
 
@@ -381,8 +382,9 @@ if ( ! open $modem_fh, '+<:raw', $modemport ) {
     exit $exit_error;
 }
 
-my $saved_stty_value = save_serial_opts ($modem_fh);
-set_serial_opts ( $modem_fh );
+my $stty = GSMUSSD::Stty->new($modem_fh);
+$stty->save();
+$stty->set_raw_noecho();
 
 $log->DEBUG ("Initialising Expect");
 $expect	= Expect->exp_init($modem_fh);
@@ -482,9 +484,9 @@ END {
     $log->DEBUG ("END: Cleaning up");
     my $exitcode = $?;  # Save it
     if ( defined $modem_fh) {
-        if ( defined $saved_stty_value ) {
+        if ( defined $stty ) {
             $log->DEBUG ("END: Resetting serial interface");
-            restore_serial_opts($modem_fh, $saved_stty_value);
+            $stty->restore();
         }
         $log->DEBUG ("END: Closing modem interface");
         close $modem_fh;
@@ -577,111 +579,6 @@ sub unlock_modemport {
     if ( ! unlink $lock_filename ) {
         $log->DEBUG ("Can't remove lock file \"$lock_filename\": $!");
     }
-}
-
-
-########################################################################
-# Function: save_serial_opts
-# Args:     $interface   -   The file handle to remember termios values of
-# Returns:  Hashref containing the termios values found
-#           undef in case of errors
-sub save_serial_opts {
-    my ($interface) = @_;
-    my $termdata;
-    
-    $log->DEBUG ("Saving serial state");
-    my $termios = POSIX::Termios->new();
-
-    $termios->getattr(fileno($interface));
-
-    $termdata->{cflag}          = $termios->getcflag();
-    $termdata->{iflag}          = $termios->getiflag();
-    $termdata->{lflag}          = $termios->getlflag();
-    $termdata->{oflag}          = $termios->getoflag();
-    $termdata->{ispeed}         = $termios->getispeed();
-    $termdata->{ospeed}         = $termios->getospeed();
-    $termdata->{cchars}{'INTR'} = $termios->getcc(VINTR);
-    $termdata->{cchars}{'QUIT'} = $termios->getcc(VQUIT);
-    $termdata->{cchars}{'ERASE'}= $termios->getcc(VERASE);
-    $termdata->{cchars}{'KILL'} = $termios->getcc(VKILL);
-    $termdata->{cchars}{'EOF'}  = $termios->getcc(VEOF);
-    $termdata->{cchars}{'TIME'} = $termios->getcc(VTIME);
-    $termdata->{cchars}{'MIN'}  = $termios->getcc(VMIN);
-    $termdata->{cchars}{'START'}= $termios->getcc(VSTART);
-    $termdata->{cchars}{'STOP'} = $termios->getcc(VSTOP);
-    $termdata->{cchars}{'SUSP'} = $termios->getcc(VSUSP);
-    $termdata->{cchars}{'EOL'}  = $termios->getcc(VEOL);
-
-    return $termdata;
-}
-
-
-########################################################################
-# Function: restore_serial_opts
-# Args:     $interface      -   The file handle to restore termios values for
-#           $termdata       -   Hashref (return value of save_serial_opts)
-# Returns:  1               -   State successfully set
-#           0               -   State could not be restored
-sub restore_serial_opts {
-    my ($interface, $termdata) = @_;
-    
-    $log->DEBUG ("Restore serial state");
-
-    my $termios = POSIX::Termios->new();
-
-    $termios->setcflag( $termdata->{cflag} );
-    $termios->setiflag( $termdata->{iflag} );
-    $termios->setlflag( $termdata->{lflag} );
-    $termios->setoflag( $termdata->{oflag} );
-    $termios->setispeed( $termdata->{ispeed} );
-    $termios->setospeed( $termdata->{ospeed} );
-    $termios->setcc( VINTR, $termdata->{cchars}{'INTR'} );
-    $termios->setcc( VQUIT, $termdata->{cchars}{'QUIT'} );
-    $termios->setcc( VERASE,$termdata->{cchars}{'ERASE'});
-    $termios->setcc( VKILL, $termdata->{cchars}{'KILL'} );
-    $termios->setcc( VEOF,  $termdata->{cchars}{'EOF'}  );
-    $termios->setcc( VTIME, $termdata->{cchars}{'TIME'} );
-    $termios->setcc( VMIN,  $termdata->{cchars}{'MIN'}  );
-    $termios->setcc( VSTART,$termdata->{cchars}{'START'});
-    $termios->setcc( VSTOP, $termdata->{cchars}{'STOP'} );
-    $termios->setcc( VSUSP, $termdata->{cchars}{'SUSP'} );
-    $termios->setcc( VEOL,  $termdata->{cchars}{'EOL'}  );
-
-    my $result = $termios->setattr(fileno($interface));
-    if ( ! defined $result ) {
-        $log->DEBUG ("Could not restore serial state");
-        return 0;
-    }
-    return 1;
-}
-
-
-########################################################################
-# Function: set_serial_opts
-# Args:     $interface      -   The file handle to set termios values for
-# Returns:  1               -   Success
-#           0               -   Failure
-sub set_serial_opts {
-    my ($interface) = @_;
-    
-    $log->DEBUG ("Setting serial state");
-
-    my $termios = POSIX::Termios->new();
-    $termios->getattr(fileno($interface));
-
-    $termios->setcflag( CS8 | HUPCL | CREAD | CLOCAL );
-    $termios->setiflag( 0 ); # Nothing on!
-    $termios->setlflag( 0 ); # Nothing on!
-    $termios->setoflag( 0 );
-    # $termios->setispeed( $termdata->{ispeed} ); #Autobaud
-    # $termios->setospeed( $termdata->{ospeed} ); #Autobaud
-
-    my $result = $termios->setattr(fileno($interface));
-    if ( ! defined $result ) {
-        $log->DEBUG ("Could not set serial state");
-        return 0;
-    }
-    return 1;
 }
 
 
