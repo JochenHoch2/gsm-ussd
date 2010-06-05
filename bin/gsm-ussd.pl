@@ -65,6 +65,8 @@ my @all_args            = @ARGV;            # Backup of args to print them for d
 my $num_net_reg_retries = 10;               # Number of retries if modem is not already
                                             # registered in a net
 
+my $log = GSMUSSD::Loggit->new(0);          # New Logger, logging by default off
+
 # Consts
 my $success         =  1;
 my $fail            =  0;
@@ -95,8 +97,8 @@ if ( $show_online_help ) {
 }
 
 
-# Set our logger
-my $log = GSMUSSD::Loggit->new($debug);
+# Activate our logger
+$log->really_log($debug);
 
 # Further arguments are USSD queries
 if ( @ARGV != 0 ) {
@@ -481,6 +483,7 @@ exit $exit_success; # will give control to END
 # Args:     None
 # Returns:  Nothing. Will be called after exit().
 END {
+    my $log = GSMUSSD::Loggit->new($debug);
     $log->DEBUG ("END: Cleaning up");
     my $exitcode = $?;  # Save it
     if ( defined $modem_fh) {
