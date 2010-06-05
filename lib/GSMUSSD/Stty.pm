@@ -6,7 +6,6 @@ use warnings;
 package GSMUSSD::Stty;
 
 use POSIX qw/:termios_h/;
-use Fcntl;
 
 use GSMUSSD::Loggit;
 
