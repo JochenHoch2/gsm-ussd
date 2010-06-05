@@ -495,8 +495,8 @@ END {
         close $modem_fh;
     }
     if ( defined ($lockfile) ) {
-        $log->DEBUG ("Removing lock file");
-        $lockfile->release();
+        $log->DEBUG ("END: Removing lock file");
+        $lockfile = undef;
     }
     $? = $exitcode;
 }

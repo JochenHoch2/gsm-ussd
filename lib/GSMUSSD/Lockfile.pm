@@ -23,6 +23,14 @@ sub new {
 }
 
 
+sub DESTROY {
+	my ($self) = @_;
+	
+	if ($self->is_locked() ) {
+		$self->release();
+	}
+}
+
 sub device {
 	my ($self, $device) = @_;
 	
@@ -93,8 +101,9 @@ sub release {
         $self->{log}->DEBUG ("Can't remove lock file \"$self->{lockfile}\": $!");
 	return 0;
     }
-    $self->{locked} = 0;
     $self->{log}->DEBUG ("Lock $self->{lockfile} released");
+    $self->{locked}	= 0;
+    $self->{lockfile}	= undef;
     return 1;
 }
 
