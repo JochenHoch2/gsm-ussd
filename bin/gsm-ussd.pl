@@ -375,7 +375,7 @@ my $lockfile = GSMUSSD::Lockfile->new ($modemport);
 if ( ! $lockfile->lock() ) {
     print STDERR "Can't get lock file for $modemport!\n";
     print STDERR "* Wrong modem device? (use -m <dev>)?\n";
-    print STDERR "* Stale lock file for $modemport in /var/lock?";
+    print STDERR "* Stale lock file for $modemport in /var/lock?\n";
     exit $exit_error;
 }
 
@@ -495,7 +495,7 @@ END {
         $log->DEBUG ("END: Closing modem interface");
         close $modem_fh;
     }
-    if ( defined ($lockfile) ) {
+    if ( defined ($lockfile) && $lockfile->is_locked() ) {
         $log->DEBUG ("END: Removing lock file");
         $lockfile = undef;
     }
