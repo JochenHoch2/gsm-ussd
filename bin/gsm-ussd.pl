@@ -38,6 +38,7 @@ use GSMUSSD::Loggit;
 use GSMUSSD::DCS;
 use GSMUSSD::Stty;
 use GSMUSSD::Lockfile;
+use GSMUSSD::Code;
 
 use Expect;     # External dependency
 
@@ -910,6 +911,7 @@ sub interpret_ussd_data {
         return $response;
     }
     my $dcs = GSMUSSD::DCS->new($encoding);
+    my $code= GSMUSSD::Code->new();
 
     if ( $dcs->is_default_alphabet() ) {
         $log->DEBUG ("Encoding \"$encoding\" says response is in default alphabet");
@@ -918,28 +920,28 @@ sub interpret_ussd_data {
             return $response;
         }
         elsif ( $encoding == 0 ) {
-            return hex_to_string( $response );
+            return $code->decode_8bit( $response );
         }
         elsif ( $encoding == 15 ) {
-            return decode ('gsm0338', gsm_unpack( hex_to_string( $response )));
+            return decode( 'gsm0338', $code->decode_7bit( $response ) );
         }
         else {
             $log->DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
-            return hex_to_string( $response );
+            return $code->decode_8bit( $response );
         }
         # NOTREACHED
     }
     elsif ( $dcs->is_ucs2() ) {
         $log->DEBUG ("Encoding \"$encoding\" says response is in UCS2-BE");
-        return decode ('UCS-2BE', hex_to_string ($response));
+        return decode ('UCS-2BE', $code->decode_8bit ($response));
     }
     elsif ( $dcs->is_8bit() ) {
         $log->DEBUG ("Encoding \"$encoding\" says response is in 8bit");
-        return hex_to_string ($response); # Should this be cleartext?
+        return $code->decode_8bit ($response);
     }
     else {
         $log->DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
-        return hex_to_string( $response );
+        return $code->decode_8bit( $response );
     }
     # NOTREACHED
 }
@@ -1130,14 +1132,15 @@ sub network_error {
 sub ussd_query_cmd {
 	my ($ussd_cmd)                  = @_;
 	my $result_code_presentation    = '1';      # Enable result code presentation
-	my $encoding                    = '15';     # No clue what this value means
+	my $encoding                    = '15';     # Default alphabet, 7bit
 	my $ussd_string;
 
     if ( $use_cleartext ) {
         $ussd_string = $ussd_cmd;
     }
     else {
-        $ussd_string = string_to_hex (gsm_pack (encode('gsm0338', $ussd_cmd)));
+        my $code = GSMUSSD::Code->new();
+        $ussd_string = $code->encode_7bit( encode('gsm0338', $ussd_cmd) );
     }
 	return sprintf 'AT+CUSD=%s,"%s",%s', $result_code_presentation, $ussd_string, $encoding;
 }
@@ -1170,92 +1173,6 @@ sub translate_gsm_error {
     }
     # Number not found
     return 'No error description available';
-}
-
-
-#######################################################################r
-# Function: hex_to_string
-# Args:     String consisting of hex values
-# Returns:  String containing the given values
-sub hex_to_string {
-	return pack ("H*", $_[0]);
-}
-
-
-########################################################################
-# Function: string_to_hex
-# Args:     String 
-# Returns:  Hexstring
-sub string_to_hex {
-	return uc( unpack( "H*", $_[0] ) );
-}
-
-
-########################################################################
-# Function: repack_bits
-# Args:     $count_bits_in  Number of bits per arg list element
-#           $count_bits_out Number of bits per result list element
-#           $bit_values_in  String containing $count_bits_in bits per
-#                           char
-# Returns:  String containing $count_bits_out bits per char. From a "bit
-#           stream" point of view, nothing is changed,
-#           only the number of bits per char in arg and result string
-#           differ!
-#
-# This function is really only tested packing/unpacking 7 bit values to
-# 8 bit values and vice versa. As this function uses bit operators,
-# it'll probably work up to a maximum element size of 16 bits (both in
-# and out). If you're running on an 64 bit platform, it might even work
-# with elements up to 32 bits length. *Those are guesses, as I didn't
-# test this!*
-sub repack_bits {
-    my ($count_bits_in, $count_bits_out, $bit_values_in) = @_;
-
-    my $bit_values_out	= '';
-    my $bits_in_buffer	= 0;
-    my $bitbuffer		= 0;
-    my $bit_mask_out    = 2**$count_bits_out - 1;
-
-    for (my $pos = 0; $pos < length ($bit_values_in); ++$pos) {
-        my $in_bits = ord (substr($bit_values_in, $pos, 1));
-		# Die neuen Bits soweit linksshiften, wie noch Bits
-		# im Buffer sind und mit dem Buffer ORen.
-		# Die vorhandenen Bits um x Bits linksshiften
-		$bitbuffer = $bitbuffer | ( $in_bits << $bits_in_buffer);
-		$bits_in_buffer += $count_bits_in;
-
-		while ( $bits_in_buffer >= $count_bits_out ) {
-			# Die letzten y Bits ausspucken
-			$bit_values_out .= chr ( $bitbuffer & $bit_mask_out ) ;
-			$bitbuffer = $bitbuffer >> $count_bits_out;
-			$bits_in_buffer -= $count_bits_out;
-		}	
-	}
-	# Rest im Buffer inkl. Null-Fuellbits ausgeben
-	if ($count_bits_in < $count_bits_out && $bits_in_buffer > 0) {
-        $bit_values_out .= chr ( $bitbuffer & $bit_mask_out ) ;
-	}
-
-	return $bit_values_out;
-}
-
-
-########################################################################
-# Function: gsm_unpack
-# Args:     String to unpack 7 bit values from
-# Returns:  String containing 7 bit values of the arg per character
-sub gsm_unpack {
-	return repack_bits (8,7, $_[0]);
-}
-
-
-########################################################################
-# Function: gsm_pack
-# Args:     String of 7 bit values to pack (8 7 bit values into 7 eight
-#           bit values)
-# Returns:  String containing 7 bit values of the arg per character
-sub gsm_pack {
-	return repack_bits(7, 8, $_[0]);
 }
 
 
