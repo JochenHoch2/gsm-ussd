@@ -362,7 +362,7 @@ $modem_lockfile = lock_modemport  ($modemport);
 if ( ! defined $modem_lockfile ) {
     print STDERR "Can't get lock file for $modemport!\n";
     print STDERR "* Wrong modem device? (use -m <dev>)?\n";
-    print STDERR "* Stale lock file for $modemport in /var/lock?";
+    print STDERR "* Stale lock file for $modemport in /var/lock?\n";
     exit $exit_error;
 }
 
