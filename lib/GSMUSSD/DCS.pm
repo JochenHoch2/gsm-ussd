@@ -1,4 +1,10 @@
 #!/usr/bin/perl
+########################################################################
+# vim: set expandtab sw=4 ts=4 ai nu: 
+########################################################################
+# Class:            GSMUSSD::DCS
+# Documentation:    See POD at __END__
+########################################################################
 
 package GSMUSSD::DCS;
 
@@ -7,6 +13,11 @@ use warnings;
 
 use Carp;
 
+
+########################################################################
+# Method:   new
+# Type:     Constructor
+# Args:     The DCS value received by an unsolicited USSD answer
 sub new {
 	my $class = shift;
 	my $dcs = shift;
@@ -21,6 +32,11 @@ sub new {
 	return $self;
 }
 
+########################################################################
+# Method:   dcs
+# Type:     Instance
+# Args:     $dcs: New DCS value to check
+# Returns:  DCS value
 sub dcs {
 	my ($self, $dcs) = @_;
 	if ( defined $dcs ) {
@@ -29,8 +45,9 @@ sub dcs {
 	return $self->{dcs};
 }
 
+
 #######################################################################
-# Function: is_default_alphabet
+# Method:   is_default_alphabet
 # Args:     $enc    - the USSD dcs
 # Returns:  1   - dcs indicates default alpabet
 #           0   - dcs does not indicate default alphabet
@@ -52,7 +69,7 @@ sub is_default_alphabet {
 
 
 #######################################################################
-# Function: is_ucs2
+# Method:   is_ucs2
 # Args:     $enc    - the USSD dcs
 # Returns:  1   - dcs indicates UCS2-BE
 #           0   - dcs does not indicate UCS2-BE
@@ -71,7 +88,7 @@ sub is_ucs2 {
 
 
 #######################################################################
-# Function: is_8bit
+# Method:   is_8bit
 # Args:     $enc    - the USSD dcs
 # Returns:  1   - dcs indicates 8bit
 #           0   - dcs does not indicate 8bit
@@ -90,7 +107,7 @@ sub is_8bit {
 
 
 ########################################################################
-# Function: _bit_is_set
+# Method:   _bit_is_set
 # Args:     $bit - Number of the bit to test
 #           $val - Value to test bit $bit against
 # Returns:  1   - Bit is set to 1
@@ -101,3 +118,25 @@ sub _bit_is_set {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+GSMUSSD::DCS
+
+=head1 SYNOPSYS
+
+ use GSMUSSD::DCS;
+
+ my $dcs = GSMUSSD::DCS->new( $dcs_from_ussd_answer );
+ if ( $dcs->is_8bit() ) {
+    print "Simple hexstring to value conversion suffices!\n");
+ }
+
+=head1 DESCRIPTION
+
+=head1 AUTHOR
+
+Jochen Gruse, L<mailto:jochen@zum-quadrat.de>
+

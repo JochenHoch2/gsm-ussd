@@ -1,23 +1,33 @@
 #!/usr/bin/perl
+########################################################################
+# vim: set expandtab sw=4 ts=4 ai nu: 
+########################################################################
+# Module:           GSMUSSD::Code
+# Documentation:    POD at __END__
+########################################################################
 
 package GSMUSSD::Code;
 
 use strict;
 use warnings;
 
-# use Carp;
 
+########################################################################
+# Method:   new
+# Type:     Constructor
+# Args:     None
 sub new {
-	my ($class) = @_;
-	
-	my $self = { };
-	bless $self, $class;
-	return $self;
+    my ($class) = @_;
+
+    my $self = { };
+    bless $self, $class;
+    return $self;
 }
 
 
-#######################################################################r
-# Function: decode_8bit
+########################################################################
+# Method:   decode_8bit
+# Type:     Instance
 # Args:     String consisting of hex values
 # Returns:  String containing the given values
 sub decode_8bit {
@@ -28,7 +38,8 @@ sub decode_8bit {
 
 
 ########################################################################
-# Function: encode_8bit
+# Method:   encode_8bit
+# Type:     Instance
 # Args:     String 
 # Returns:  Hexstring
 sub encode_8bit {
@@ -39,7 +50,8 @@ sub encode_8bit {
 
 
 ########################################################################
-# Function: decode_7bit
+# Method:   decode_7bit
+# Type:     Instance
 # Args:     String to unpack 7 bit values from
 # Returns:  String containing 7 bit values of the arg per byte
 sub decode_7bit {
@@ -50,7 +62,8 @@ sub decode_7bit {
 
 
 ########################################################################
-# Function: encode_7bit
+# Method:   encode_7bit
+# Type:     Instance
 # Args:     String of 7 bit values to pack (8 7 bit values into 7 eight
 #           bit values)
 # Returns:  String containing 7 bit values of the arg per character
@@ -62,7 +75,8 @@ sub encode_7bit {
 
 
 ########################################################################
-# Function: _repack_bits
+# Method:   _repack_bits
+# Type:     Instance
 # Args:     $count_bits_in  Number of bits per arg list element
 #           $count_bits_out Number of bits per result list element
 #           $bit_values_in  String containing $count_bits_in bits per
@@ -72,7 +86,7 @@ sub encode_7bit {
 #           only the number of bits per char in arg and result string
 #           differ!
 #
-# This function is really only tested packing/unpacking 7 bit values to
+# This method is really only tested packing/unpacking 7 bit values to
 # 8 bit values and vice versa. As this function uses bit operators,
 # it'll probably work up to a maximum element size of 16 bits (both in
 # and out). If you're running on an 64 bit platform, it might even work
@@ -109,3 +123,24 @@ sub _repack_bits {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+GSMUSSD::Code
+
+=head1 SYNOPSYS
+
+ use GSMUSSD::Code;
+
+ my $code = GSMUSSD::Code->new();
+ my $ussd = $code->encode_7bit('*100#');
+ my $answer = $code->decode_7bit ($e160_ussd_response);
+
+=head1 DESCRIPTION
+
+=head1 AUTHOR
+
+Jochen Gruse, L<mailto:jochen@zum-quadrat.de>
+

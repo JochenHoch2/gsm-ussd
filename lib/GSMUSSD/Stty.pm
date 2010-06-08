@@ -1,15 +1,25 @@
 #!/usr/bin/perl
+########################################################################
+# vim: set expandtab sw=4 ts=4 ai nu: 
+########################################################################
+# Module:           GSMUSSD::Stty
+# Documentation:    POD at __END__
+########################################################################
+
+package GSMUSSD::Stty;
 
 use strict;
 use warnings;
 
-package GSMUSSD::Stty;
-
 use POSIX qw/:termios_h/;
-
 use GSMUSSD::Loggit;
 
 
+########################################################################
+# Method:   new
+# Type:     Constructor
+# Args:     $filehandle -   The filehandle to handle the termios settings
+#                           for
 sub new {
 	my ($class, $filehandle) = @_;
 	my $self = {
@@ -23,10 +33,9 @@ sub new {
 
 
 ########################################################################
-# Function: save
-# Args:     $interface   -   The file handle to remember termios values of
-# Returns:  Hashref containing the termios values found
-#           undef in case of errors
+# Method:   save
+# Args:     None
+# Returns:  Nothing
 sub save {
     my ($self) = @_;
     
@@ -59,11 +68,9 @@ sub save {
 
 
 ########################################################################
-# Function: restore
-# Args:     $interface      -   The file handle to restore termios values for
-#           $termdata       -   Hashref (return value of save_serial_opts)
-# Returns:  1               -   State successfully set
-#           0               -   State could not be restored
+# Method:   restore
+# Args:     None
+# Returns:  Nothing
 sub restore {
     my ($self) = @_;
     
@@ -99,10 +106,9 @@ sub restore {
 
 
 ########################################################################
-# Function: set_raw_noecho
-# Args:     $interface      -   The file handle to set termios values for
-# Returns:  1               -   Success
-#           0               -   Failure
+# Method:   set_raw_noecho
+# Args:     None
+# Returns:  
 sub set_raw_noecho {
     my ($self) = @_;
     
@@ -127,3 +133,26 @@ sub set_raw_noecho {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+GSMUSSD::Stty
+
+=head1 SYNOPSYS
+
+ use GSMUSSD::Stty;
+
+ my $stty = GSMUSSD::Stty->new( '/dev/ttyUSB1' );
+ $stty->save();
+ $stty->set_raw_noecho();
+ ...
+ $stty->restore();
+
+=head1 DESCRIPTION
+
+=head1 AUTHOR
+
+Jochen Gruse, L<mailto:jochen@zum-quadrat.de>
+
