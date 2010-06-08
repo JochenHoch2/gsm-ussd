@@ -252,6 +252,7 @@ my $modem_model = get_modem_model();
 if ( ! defined $modem_model ) {
     $modem_model = '';
 }
+
 if ( ! defined $use_cleartext ) {
     if ( modem_needs_pdu_format ( $modem_model ) ) {
         $log->DEBUG ("Modem type \"$modem_model\" needs PDU format for USSD query.");
@@ -263,7 +264,7 @@ if ( ! defined $use_cleartext ) {
     }
 }
 else {
-    $use_cleartext = 0;
+    DEBUG( 'Will use cleartext as given on the command line: ', $use_cleartext );
 }
 
 if ( pin_needed() ) {
