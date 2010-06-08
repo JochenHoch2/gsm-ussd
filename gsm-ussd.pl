@@ -1141,7 +1141,7 @@ sub send_command {
         }
         elsif ( $first_word eq '+CMS ERROR' ) {
             # After this error there will be no OK/ERROR anymore
-            my $errormessage = translate_gms_error($first_word,$args);
+            my $errormessage = translate_gsm_error($first_word,$args);
             return {
                 ok          => $fail,
                 match       => $match_string,
