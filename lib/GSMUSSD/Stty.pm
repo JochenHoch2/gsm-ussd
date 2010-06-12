@@ -21,14 +21,15 @@ use GSMUSSD::Loggit;
 # Args:     $filehandle -   The filehandle to handle the termios settings
 #                           for
 sub new {
-	my ($class, $filehandle) = @_;
-	my $self = {
-		filehandle	=> $filehandle,
-		savestate	=> undef,
-		log		=> GSMUSSD::Loggit->new(),
-	};
-	bless $self, $class;
-	return $self;
+    my ($class, $filehandle) = @_;
+    my $self = {
+        filehandle  => $filehandle,
+        filenum     => undef,
+        savestate   => undef,
+        log         => GSMUSSD::Loggit->new(),
+    };
+    bless $self, $class;
+    return $self;
 }
 
 
@@ -43,7 +44,8 @@ sub save {
 
     my $termios = POSIX::Termios->new();
 
-    $termios->getattr(fileno($self->{filehandle}));
+    $self->{filenum} = fileno ($self->{filehandle});
+    $termios->getattr( $self->{filenum} );
 
     $self->{savestate}->{cflag}          = $termios->getcflag();
     $self->{savestate}->{iflag}          = $termios->getiflag();
@@ -96,7 +98,7 @@ sub restore {
     $termios->setcc( VSUSP, $self->{savestate}->{cchars}{'SUSP'} );
     $termios->setcc( VEOL,  $self->{savestate}->{cchars}{'EOL'}  );
 
-    my $result = $termios->setattr(fileno($self->{filehandle}));
+    my $result = $termios->setattr( $self->{filenum} );
     if ( ! defined $result ) {
         $self->{log}->DEBUG ("Could not restore serial state");
         return undef;
