@@ -30,18 +30,16 @@ use 5.008;                  # Encode::GSM0338 only vailable since 5.8
 
 use Getopt::Long;
 use Pod::Usage;
-use Encode  qw(encode decode);
+use Encode qw(encode decode);
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 use GSMUSSD::Loggit;
 use GSMUSSD::DCS;
-use GSMUSSD::Stty;
-use GSMUSSD::Lockfile;
 use GSMUSSD::Code;
-use GSMUSSD::NetworkErrors;
+use GSMUSSD::Modem;
 
-use Expect;     # External dependency
+# use Expect;     # External dependency
 
 
 ########################################################################
@@ -50,21 +48,15 @@ use Expect;     # External dependency
 
 our $VERSION            = '0.3.9';          # Our version
 my $modemport           = '/dev/ttyUSB1';   # AT port of a Huawei E160 modem
-# my $modem_lockfile      = undef;            # The modem lockfile (e.g. /var/run/LCK..ttyUSB1)
-my $modem_fh            = undef;
 my $timeout_for_answer  = 20;               # Timeout for modem answers in seconds
 my @ussd_queries        = ( '*100#' );      # Prepaid account query as default
 my $use_cleartext       = undef;            # Need to encode USSD query?
 my $cancel_ussd_session = 0;                # User wants to cancel an ongoing USSD session
 my $show_online_help    = 0;                # Option flag online help
 my $debug               = 0;                # Option flag debug mode
-my $expect              = undef;            # The Expect object
 my $expect_logfilename  = undef;            # Filename to log the modem dialog into
 my $pin                 = undef;            # Value for option PIN
 my @all_args            = @ARGV;            # Backup of args to print them for debug
-
-my $num_net_reg_retries = 10;               # Number of retries if modem is not already
-                                            # registered in a net
 
 my $log = GSMUSSD::Loggit->new(0);          # New Logger, logging by default off
 
@@ -106,98 +98,6 @@ if ( @ARGV != 0 ) {
     @ussd_queries = @ARGV;
 }
 
-# The Expect programs differ in the way they react to modem answers
-my %expect_programs = (
-    # wait_for_OK:  The modem will react with OK/ERROR/+CM[SE] ERROR
-    #               This in itself will be the result, further information
-    #               might be available between AT... and OK.
-    wait_for_OK =>  [
-        # Ignore status messages
-        [ qr/\r\n([\+\^](?:BOOT|DSFLOWRPT|MODE|RSSI|SIMST|SRVST)):[ ]*([^\r\n]*)\r\n/i
-            => \&ignore_state_line
-        ],
-        # Identify +CREG status message
-        # (+CREG modem answer has got two arguments "\d,\d"!)
-        [ qr/\r\n(\+CREG):[ ]*(\d)\r\n/i
-            => \&ignore_state_line
-        ],
-        # Fail states of the modem (network lost, SIM problems, ...)
-        [ qr/\r\n(\+CM[SE] ERROR):[ ]*([^\r\n]*)\r\n/i
-            => \&network_error
-        ],
-        # AT command (TTY echo of input)
-        [ qr/^AT([^\r\n]*)\r/i
-            =>  sub {
-                    my $exp = shift;
-                    $log->DEBUG("AT found, -> ",$exp->match() );
-                    exp_continue_timeout;
-                }
-        ],
-        # Modem answers to command
-        [ qr/\r\n(OK|ERROR)\r\n/i
-            =>  sub {
-                    my $exp = shift;
-                    $log->DEBUG ("OK/ERROR found: ", ($exp->matchlist())[0] );
-                }
-        ],
-    ],
-    # wait_for_cmd_answer:
-    #               The command answers with OK/ERROR, but the real
-    #               result will arrive later out of the net
-    wait_for_cmd_answer =>  [
-        # Ignore status messages
-        [ qr/\r\n(\^(?:BOOT|DSFLOWRPT|MODE|RSSI|SIMST|SRVST)):[ ]*([^\r\n]*)\r\n/i
-            => \&ignore_state_line
-        ],
-        # Identify +CREG status message
-        # (+CREG modem answer has got two arguments "\d+, \d+"!)
-        [ qr/\r\n(\+CREG):[ ]*(\d)\r\n/i
-            => \&ignore_state_line
-        ],
-        # Fail states of the modem (network lost, SIM problems, ...)
-        [ qr/\r\n(\+CM[SE] ERROR):[ ]*([^\r\n]*)\r\n/i
-            =>  \&network_error
-        ],
-        # The expected result - all state messages have already been
-        # dealt with. Everything that reaches this part has to be the
-        # result of the sent command.
-        # Some more checks of that?
-        [ qr/\r\n(\+[^:]+):[ ]*([^\r\n]*)\r\n/i
-            => sub {
-                my $exp = shift;
-                my $match = $exp->match();
-                $match =~ s/(?:^\s+|\s+$)//g;
-                $log->DEBUG ("Expected answer: ", $match);
-            }
-        ],
-        # AT command (TTY echo of input)
-        [ qr/^AT([^\r\n]*)\r/i
-            =>  sub {
-                    my $exp = shift;
-                    $log->DEBUG("AT found, -> ",$exp->match() );
-                    exp_continue_timeout;
-                }
-        ],
-        # OK means that the query was successfully sent into the
-        # net. Carry on!
-        [ qr/\r\n(OK)\r\n/i
-            =>  sub {
-                    $log->DEBUG ("OK found, continue waiting for result"); 
-                    exp_continue;
-                }
-        ],
-        # ERROR means that the command wasn't syntactically correct
-        # oder couldn't be understood (wrong encoding?). Stop here,
-        # as no more meaningful results can be expected.
-        [ qr/\r\n(ERROR)\r\n/i
-            =>  sub {
-                    $log->DEBUG ("ERROR found, aborting"); 
-                }
-        ],
-    ],
-);
-
-
 # This is a list of modems that need the PDU format for query
 # As of now, these are all Huaweis...
 my @pdu_modems = (
@@ -214,44 +114,32 @@ $log->DEBUG ("Start, Version $VERSION, Args: ", @all_args);
 $log->DEBUG ("Setting output to UTF-8");
 binmode (STDOUT, ':utf8');
 
-check_modemport ($modemport);
-
-my $lockfile = GSMUSSD::Lockfile->new ($modemport);
-
-if ( ! $lockfile->lock() ) {
-    print STDERR "Can't get lock file for $modemport!\n";
-    print STDERR "* Wrong modem device? (use -m <dev>)?\n";
-    print STDERR "* Stale lock file for $modemport in /var/lock?\n";
+my $modem = GSMUSSD::Modem->new($modemport, $timeout_for_answer, $expect_logfilename);
+if (! $modem->device_accessible() ) {
+    print STDERR "ERROR: Modem port \"$modemport\" is not accessible. Possible causes:\n";
+    print STDERR "* Modem not plugged in/connected\n";
+    print STDERR "* Modem not detected by system\n";
+    print STDERR "* Wrong device file given\n";
+    print STDERR "* No read/write access to modem\n";
     exit $exit_error;
 }
 
-$log->DEBUG ("Opening modem");
-if ( ! open $modem_fh, '+<:raw', $modemport ) {
-    print STDERR "Modem port \"$modemport\" seems in order, but cannot open it anyway:\n$!\n";
+$log->DEBUG ('Opening modem');
+if ( ! $modem->open() ) {
+    print STDERR 'Error: ' . $modem->error(), $/;
     exit $exit_error;
 }
 
-my $stty = GSMUSSD::Stty->new($modem_fh)->save()->set_raw_noecho();
-
-$log->DEBUG ("Initialising Expect");
-$expect	= Expect->exp_init($modem_fh);
-if (defined $expect_logfilename) {
-    $expect->log_file($expect_logfilename, 'w');
-}
-
-if ( ! check_for_modem() ) {
+if ( ! $modem->probe() ) {
     print STDERR "No modem found at device \"$modemport\". Possible causes:\n";
     print STDERR "* Wrong modem device (use -m <dev>)?\n";
     print STDERR "* Modem broken (no reaction to AT)\n";
     exit $exit_error;
 }
 
-set_modem_echo (1);
+$modem->echo (1);
 
-my $modem_model = get_modem_model();
-if ( ! defined $modem_model ) {
-    $modem_model = '';
-}
+my $modem_model = $modem->model();
 
 if ( ! defined $use_cleartext ) {
     if ( modem_needs_pdu_format ( $modem_model ) ) {
@@ -267,14 +155,14 @@ else {
     DEBUG( 'Will use cleartext as given on the command line: ', $use_cleartext );
 }
 
-if ( pin_needed() ) {
+if ( $modem->pin_needed() ) {
     $log->DEBUG ("PIN needed");
     if ( ! defined $pin ) {
         print STDERR "SIM card is locked, but no PIN to unlock given.\n";
         print STDERR "Use \"-p <pin>\"!\n";
         exit $exit_nopin;
     }
-    if ( enter_pin ($pin) ) {
+    if ( $modem->enter_pin ($pin) ) {
         $log->DEBUG ("Pin $pin accepted.");
     }
     else {
@@ -284,7 +172,7 @@ if ( pin_needed() ) {
     }
 }
 
-my ( $net_is_available, $reason)  = get_net_registration_state ( $num_net_reg_retries );
+my ( $net_is_available, $reason)  = $modem->get_net_registration_state();
 if ( ! $net_is_available ) {
     print STDERR "Sorry, no network seems to be available:\n$reason\n";
     exit $exit_nonet;
@@ -329,273 +217,14 @@ exit $exit_success; # will give control to END
 # Args:     None
 # Returns:  Nothing. Will be called after exit().
 END {
+    my $exitcode = $?;  # Save it
+
     my $log = GSMUSSD::Loggit->new($debug);
     $log->DEBUG ("END: Cleaning up");
-    my $exitcode = $?;  # Save it
-    if ( defined $modem_fh) {
-        if ( defined $stty ) {
-            $log->DEBUG ("END: Resetting serial interface");
-            $stty->restore();
-        }
-        $log->DEBUG ("END: Closing modem interface");
-        close $modem_fh;
-    }
-    if ( defined ($lockfile) && $lockfile->is_locked() ) {
-        $log->DEBUG ("END: Removing lock file");
-        $lockfile = undef;
+    if ( defined $modem) {
+        $modem->close();
     }
     $? = $exitcode;
-}
-
-
-########################################################################
-# Function: check_modemport
-# Args:     File to check as modem port
-# Returns:  void, exits if modem port check fails
-sub check_modemport {
-    my ($mp) = @_;
-
-    if ( ! -e $mp ) {
-        print STDERR "Modem port \"$mp\" doesn't exist. Possible causes:\n";
-        print STDERR "* Modem not plugged in/connected\n";
-        print STDERR "* Modem broken\n";
-        print STDERR "Perhaps use another device with -m?\n";
-        exit $exit_error;
-    }
-
-    if ( ! -c $mp ) {
-        print STDERR "Modem device \"$mp\" is no character device file. Possible causes:\n";
-        print STDERR "* Wrong device file given (-m ?)\n";
-        print STDERR "* Device file broken?\n";
-        print STDERR "Please check!\n";
-        exit $exit_error;
-    }
-
-    if ( ! -r $mp ) {
-        print STDERR "Can't read from device \"$mp\".\n";
-        print STDERR "Set correct rights for \"$mp\" with chmod?\n";
-        print STDERR "Perhaps use another device with -m?\n";
-        exit $exit_error;
-    }
-
-    if ( ! -w $mp ) {
-        print STDERR "Can't write to device \"$mp\".\n";
-        print STDERR "Set correct rights for \"$mp\" with chmod?\n";
-        print STDERR "Perhaps use another device with -m?\n";
-        exit $exit_error;
-    }
-}
-
-
-########################################################################
-# Function: check_for_modem
-# Args:     None
-# Returns:  0   No modem found 
-#           1   Modem found
-#
-# "Finding a modem" is hereby defined as getting a reaction of "OK"
-# to writing "AT" into the file handle in question.
-sub check_for_modem {
-
-    $log->DEBUG ("Starting modem check (AT)");
-    my $result = send_command ( "AT", 'wait_for_OK' );
-    if ( $result->{ok} ) {
-        $log->DEBUG ("Modem found (AT->OK)");
-        return 1;
-    }
-    else {
-        $log->DEBUG ("No modem found, error: $result->{description}");
-        return 0;
-    }
-}
-
-
-########################################################################
-# Function: set_modem_echo
-# Args:     true    -   Echo on
-#           false   -   Echo off
-# Returns:  0   -   Success
-#           1   -   Fail 
-sub set_modem_echo {
-    my ($echo_on) = @_;
-    my $modem_echo_command = '';
-
-    if ($echo_on) {
-        $modem_echo_command = 'ATE1';
-        $log->DEBUG ("Enabling modem echo ($modem_echo_command)");
-    }
-    else {
-        $modem_echo_command = 'ATE0';
-        $log->DEBUG ("Disabling modem echo ($modem_echo_command)");
-    }
-
-    my $result = send_command ( $modem_echo_command, 'wait_for_OK' );
-    if ( $result->{ok} ) { 
-        $log->DEBUG ("$modem_echo_command successful");
-        return 1;
-    }   
-    else {
-        $log->DEBUG ("$modem_echo_command failed, error: $result->{description}");
-        return 0;
-    }   
-}
-
-
-########################################################################
-# Function: get_modem_model
-# Args:     None
-# Returns:  String  Name of the modem model
-#           undef   No name found
-#
-# Different modems report *very* different things here, but it's enough
-# to see if it's a E160-type modem.
-sub get_modem_model {
-
-    $log->DEBUG ("Querying modem type");
-    my $result = send_command ( "AT+CGMM", 'wait_for_OK' );
-    if ( $result->{ok} ) {
-        $log->DEBUG ("Modem type found: ", $result->{description} );
-        return $result->{description};
-    }
-    else {
-        $log->DEBUG ("No modem type found: ", $result->{description});
-        return undef;
-    }
-}
-
-
-########################################################################
-# Function: pin_needed
-# Args:     None.
-# Returns:  0   No PIN needed, SIM card is unlocked
-#           1   PIN (or PUK) still needed, SIM card still locked
-sub pin_needed {
-
-    $log->DEBUG ("Starting SIM state query (AT+CPIN?)");
-    my $result = send_command ( 'AT+CPIN?', 'wait_for_OK' );
-    if ( $result->{ok} ) {
-        $log->DEBUG ("Got answer for SIM state query");
-        if ( $result->{match} eq 'OK') {
-            if ( $result->{description} =~ m/READY/ ) {
-                $log->DEBUG ("SIM card is unlocked");
-                return 0;
-            }
-            elsif ( $result->{description} =~ m/SIM PIN/ ) {
-                $log->DEBUG ("SIM card is locked");
-                return 1;
-            }
-            else {
-                $log->DEBUG ("Couldn't parse SIM state query result: " . $result->{description});
-                return 1;
-            }
-        }
-        else {
-            $log->DEBUG ("SIM card locked - failed query? -> " . $result->{match} );
-            return 1;
-        }
-    }
-    else {
-        $log->DEBUG (" SIM state query failed, error: " . $result->{description} );
-        return 1;
-    }
-}
-
-
-########################################################################
-# Function: enter_pin
-# Args:     The PIN to unlock the SIM card
-# Returns:  0   Unlocking the SIM card failed
-#           1   SIM is now unlocked
-sub enter_pin {
-    my ($pin) = @_;
-
-    $log->DEBUG ("Unlocking SIM using PIN $pin");
-    my $result = send_command ( "AT+CPIN=$pin", 'wait_for_OK' );
-    if ( $result->{ok} ) {
-        $log->DEBUG ("SIM card unlocked: ", $result->{match} );
-        return 1;
-    }
-    else {
-        $log->DEBUG ("SIM card still locked, error: ", $result->{description});
-        return 0;
-    }
-}
-
-
-########################################################################
-# Function: get_net_registration_state
-# Args:     $max_tries - Number of tries 
-# Returns:  0 - No net available
-#           1 - Modem is registered in a net
-sub get_net_registration_state {
-    my ($max_tries)                     = @_;
-    my $num_tries                       = 1;
-    my $wait_time_between_net_checks    = 3;
-    my $last_state_message              = '';
-
-    $log->DEBUG ("Waiting for net registration, max $max_tries tries");
-    while ($num_tries <= $max_tries) {
-        $log->DEBUG ("Try: $num_tries");
-        my $result = send_command ( 'AT+CREG?', 'wait_for_OK' );
-        if ( $result->{ok} ) {
-            $log->DEBUG ('Net registration query result received, parsing');
-            my ($n, $stat) = $result->{description} =~ m/\+CREG:\s+(\d),(\d)/i;
-            if ( ! defined $n || ! defined $stat) {
-                $last_state_message = 'Cannot parse +CREG answer: ' . $result->{description}; 
-                $log->DEBUG ( $last_state_message );
-                return ( 0, $last_state_message );
-            }
-            if ( $stat == 0 ) {
-                $last_state_message = 'Not registered, MT not searching a new operator to register to';
-                $log->DEBUG ( $last_state_message );
-                return ( 0, $last_state_message );
-            }
-            elsif ( $stat == 1 ) {
-                $last_state_message = 'Registered, home network';
-                $log->DEBUG ( $last_state_message );
-                if ( $num_tries != 1 ) {
-                    $log->DEBUG ( 'Sleeping one more time for settling in');
-                    sleep $wait_time_between_net_checks;
-                }
-                return ( 1, $last_state_message );
-            }
-            elsif ( $stat == 2 ) {
-                $last_state_message = 'Not registered, currently searching new operator to register to';
-                $log->DEBUG ( $last_state_message );
-            }
-            elsif ( $stat == 3) {
-                $last_state_message = 'Registration denied'; 
-                $log->DEBUG ( $last_state_message );
-                return ( 0, $last_state_message );
-            }
-            elsif ( $stat == 4) {
-                $last_state_message = 'Registration state unknown';
-                $log->DEBUG ( $last_state_message );
-            }
-            elsif ( $stat == 5 ) {
-                $last_state_message = 'Registered, roaming';
-                $log->DEBUG ( $last_state_message );
-                if ( $num_tries != 1 ) {
-                    $log->DEBUG ( 'Sleeping one more time for settling in');
-                    sleep $wait_time_between_net_checks;
-                }
-                return ( 1, $last_state_message );
-            }
-            else {
-                $last_state_message = "Cannot understand net reg state code $stat";
-                $log->DEBUG ( $last_state_message );
-            }
-        }
-        else {
-            $last_state_message = 'Querying net registration failed, error: ' . $result->{description}; 
-            $log->DEBUG ( $last_state_message );
-            return ( 0, $last_state_message );
-        }
-        $log->DEBUG ("Sleeping for $wait_time_between_net_checks seconds");
-        sleep $wait_time_between_net_checks;
-        ++ $num_tries;
-    }
-    return ( 0, "No net registration in $max_tries tries found, last result:\n$last_state_message" );
 }
 
 
@@ -647,7 +276,7 @@ sub do_ussd_query {
 
     $log->DEBUG ("Starting USSD query \"$query\"");
 
-    my $result = send_command (
+    my $result = $modem->send_command (
         ussd_query_cmd($query, $use_cleartext),
         'wait_for_cmd_answer',
     );
@@ -729,7 +358,7 @@ sub do_ussd_query {
 sub cancel_ussd_session {
 
     $log->DEBUG ('Trying to cancel USSD session');
-    my $result = send_command ( "AT+CUSD=2\r", 'wait_for_OK' );
+    my $result = $modem->send_command ( "AT+CUSD=2\r", 'wait_for_OK' );
     if ( $result->{ok} ) {
         my $msg = 'USSD cancel request successful';
         $log->DEBUG ($msg);
@@ -789,184 +418,6 @@ sub interpret_ussd_data {
         return $code->decode_8bit( $response );
     }
     # NOTREACHED
-}
-
-
-########################################################################
-# Function: send_command
-# Args:     $cmd        String holding the command to send (usually 
-#                       something like "AT...")
-#           $how_to_react
-#                       String explaining which Expect program to use:
-#                       wait_for_OK
-#                           return immediately in case of OK/ERROR
-#                       wait_for_cmd_answer
-#                           Break in case of ERROR, but wait for 
-#                           the real result after OK
-# Returns:  Hashref    Result of sent command
-#           Key 'ok':   $success if AT command successfully transmitted
-#                       and answer received
-#                       $fail if AT command aborted or not able to send
-#           Key 'match':
-#                       What expect matched,
-#                       'OK'|'ERROR'|'+CME ERROR'|'+CMS ERROR'
-#           Key 'description':
-#                       Error description, OK/ERROR, output of modem
-#                       between AT command and OK, result of USSD query
-#                       after OK, all in accordance to key 'ok' and
-#                       arg $how_to_react
-sub send_command {
-    my ($cmd, $how_to_react)	= @_;
-
-    if ( ! exists $expect_programs{$how_to_react} ) {
-        print STDERR "This should not have happened - ";
-        print STDERR "unknown expect program \"$how_to_react\" wanted!\n";
-        print STDERR "This is a bug, please report!\n";
-        exit $exit_bug;
-    }
-
-    $log->DEBUG ("Sending command: $cmd");
-    $expect->send("$cmd\015");
-
-    my (
-        $matched_pattern_pos,
-        $error,
-        $match_string,
-        $before_match,
-        $after_match
-    ) =
-    $expect->expect (
-            $timeout_for_answer,
-            @{$expect_programs{$how_to_react}},
-        );
-
-    if ( !defined $error ) {
-        my ($first_word, $args ) = $expect->matchlist();
-        $first_word = uc $first_word;
-        $match_string =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
-        if ( $first_word eq 'ERROR' ) {
-            # OK/ERROR are two of the three "command done" markers.
-            return {
-                ok          => $fail,
-                match       => $match_string,
-                description => 'Broken command',
-            };
-        }
-        elsif ( $first_word eq '+CMS ERROR' ) {
-            # After this error there will be no OK/ERROR anymore
-            my $errormessage = GSMUSSD::NetworkErrors->new()->get_cms_error($args);
-            return {
-                ok          => $fail,
-                match       => $match_string,
-                description => "GSM network error: $errormessage ($args)",
-            };
-        }
-        elsif ( $first_word eq '+CME ERROR' ) {
-            # After this error there will be no OK/ERROR anymore
-            my $errormessage = GSMUSSD::NetworkErrors->new()->get_cme_error($args);
-            return {
-                ok          => $fail,
-                match       => $match_string,
-                description => "GSM equipment error: $errormessage ($args)",
-            };
-        }
-        elsif ( $first_word eq 'OK' ) {
-            # $before_match contains data between AT and OK
-            $before_match =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
-            return {
-                ok          => $success,
-                match       => $match_string,
-                description => $before_match,
-            };
-        }
-        elsif ( $first_word =~ /^[\^\+]/ ) {
-            return {
-                ok          => $success,
-                match       => $match_string,
-                description => $match_string,
-            };
-        }
-        else {
-            return {
-                ok          => $fail,
-                match       => $match_string,
-                description => "PANIC! Can't parse Expect result: \"$match_string\"",
-            } ;
-        }
-    }
-    else {
-        # Report Expect error and bail
-        if ($error =~ /^1:/) {
-            # Timeout
-            return {
-                ok => $fail,
-                match => $error,
-                description => "No answer for $timeout_for_answer seconds!",
-            };
-        }
-        elsif ($error =~ /^2:/) {
-            # EOF
-            return {
-                ok          => $fail,
-                match       => $error,
-                description => "EOF from modem received - modem unplugged?",
-            };
-        }
-        elsif ($error =~ /^3:/) {
-            # Spawn id died
-            return {
-                ok          => $fail,
-                match       => $error,
-                description => "PANIC! Can't happen - spawn ID died!",
-            };
-        }
-        elsif ($error =~ /^4:/) {
-            # Read error
-            return {
-                ok          => $fail,
-                match       => $error,
-                description => "Read error accessing modem: $!",
-            };
-        }
-        else {
-            return {
-                ok          => $fail,
-                match       => $error,
-                description => "PANIC! Can't happen - unknown Expect error \"$error\"",
-            };
-        }
-    }
-    return {
-        ok          => $fail,
-        match       => '',
-        description => "PANIC! Can't happen - left send_command() unexpectedly!",
-    };
-}
-
-
-########################################################################
-# Function: ignore_state_line
-# Args:     $exp        The Expect object in use
-# Returns:  Nothing, but continues the expect() call
-sub ignore_state_line {
-    my $exp = shift;
-    my ($state_name, $result) = $exp->matchlist();
-
-    $log->DEBUG("$state_name: $result, ignored");
-    exp_continue_timeout;
-}
-
-
-########################################################################
-# Function: network_error
-# Args:     $exp        The Expect object in use
-#           $state_msg_result  Value of state message
-# Returns:  Nothing, will end the expect() call
-sub network_error {
-    my $exp = shift;
-    my ($error_msg_type,$error_msg_value) = $exp->matchlist();
-
-    $log->DEBUG ("Network error $error_msg_type with data \"$error_msg_value\" detected.");
 }
 
 
