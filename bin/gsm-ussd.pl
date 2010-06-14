@@ -46,7 +46,7 @@ use GSMUSSD::Modem;
 # Init
 ########################################################################
 
-our $VERSION            = '0.3.9';          # Our version
+our $VERSION            = '0.4.0';          # Our version
 my $modemport           = '/dev/ttyUSB1';   # AT port of a Huawei E160 modem
 my $timeout_for_answer  = 20;               # Timeout for modem answers in seconds
 my @ussd_queries        = ( '*100#' );      # Prepaid account query as default
@@ -126,12 +126,12 @@ if (! $modem->device_accessible() ) {
 
 $log->DEBUG ('Opening modem');
 if ( ! $modem->open() ) {
-    print STDERR 'Error: ' . $modem->error(), $/;
+    print STDERR 'ERROR: ' . $modem->error(), $/;
     exit $exit_error;
 }
 
 if ( ! $modem->probe() ) {
-    print STDERR "No modem found at device \"$modemport\". Possible causes:\n";
+    print STDERR "ERROR: No modem found at device \"$modemport\". Possible causes:\n";
     print STDERR "* Wrong modem device (use -m <dev>)?\n";
     print STDERR "* Modem broken (no reaction to AT)\n";
     exit $exit_error;
@@ -152,13 +152,13 @@ if ( ! defined $use_cleartext ) {
     }
 }
 else {
-    DEBUG( 'Will use cleartext as given on the command line: ', $use_cleartext );
+    $log->DEBUG( 'Will use cleartext as given on the command line: ', $use_cleartext );
 }
 
 if ( $modem->pin_needed() ) {
     $log->DEBUG ("PIN needed");
     if ( ! defined $pin ) {
-        print STDERR "SIM card is locked, but no PIN to unlock given.\n";
+        print STDERR "ERROR: SIM card is locked, but no PIN to unlock given.\n";
         print STDERR "Use \"-p <pin>\"!\n";
         exit $exit_nopin;
     }
@@ -166,7 +166,7 @@ if ( $modem->pin_needed() ) {
         $log->DEBUG ("Pin $pin accepted.");
     }
     else {
-        print STDERR "SIM card is locked, PIN $pin not accepted!\n";
+        print STDERR "ERROR: SIM card is locked, PIN $pin not accepted!\n";
         print STDERR "Start me again with the correct PIN!\n";
         exit $exit_wrongpin;
     }
@@ -174,7 +174,7 @@ if ( $modem->pin_needed() ) {
 
 my ( $net_is_available, $reason)  = $modem->get_net_registration_state();
 if ( ! $net_is_available ) {
-    print STDERR "Sorry, no network seems to be available:\n$reason\n";
+    print STDERR "ERROR: Sorry, no network seems to be available:\n$reason\n";
     exit $exit_nonet;
 }
 
@@ -190,7 +190,7 @@ if ( $cancel_ussd_session ) {
 else {
     for my $ussd_query ( @ussd_queries ) {
         if ( ! is_valid_ussd_query ( $ussd_query ) ) {
-            print STDERR "\"$ussd_query\" is not a valid USSD query - ignored.\n";
+            print STDERR "WARNING: \"$ussd_query\" is not a valid USSD query - ignored.\n";
             next;
         }
         my $ussd_result = do_ussd_query ( $ussd_query );
