@@ -293,7 +293,7 @@ sub ussd_query_cmd {
 	my $dcs                         = '15';     # Default alphabet, 7bit
 	my $ussd_string;
 
-    if ( $self->{use_cleartext} ) {
+    if ( $self->{modem_uses_cleartext} ) {
         $ussd_string = $ussd_cmd;
     }
     else {
