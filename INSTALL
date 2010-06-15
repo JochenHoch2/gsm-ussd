@@ -31,7 +31,13 @@ Tested Hardware
   Thanks to Tomasz from Polonia!
 
 * Huawei E165G (USB ID 12d1:1003, /dev/ttyUSB1) 
+  Thanks to Tomasz from Polonia!
 
+* Huawei E160X (USB ID 12d1:1003, /dev/ttyUSB1), a.k.a.
+            WebSessions USB-Stick K3565
+  Thanks to Ulrichi (reported by mail)!
+
+_
 * Ericsson-Modem of the Ideapad S10 3G (USB ID 0bdb:1900, /dev/ttyACM1)
   Thanks to Ulf (yeti at debianforum.de)!
 
