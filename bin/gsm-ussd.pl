@@ -30,7 +30,7 @@ use 5.008;                  # Encode::GSM0338 only vailable since 5.8
 
 use Getopt::Long;
 use Pod::Usage;
-use Encode qw(encode decode);
+# use Encode qw(encode decode);
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
@@ -38,8 +38,7 @@ use GSMUSSD::Loggit;
 use GSMUSSD::DCS;
 use GSMUSSD::Code;
 use GSMUSSD::Modem;
-
-# use Expect;     # External dependency
+use GSMUSSD::UssdQuery;
 
 
 ########################################################################
@@ -63,6 +62,7 @@ my $log = GSMUSSD::Loggit->new(0);          # New Logger, logging by default off
 # Consts
 my $success         =  1;
 my $fail            =  0;
+
 my $exit_success    =  0;
 my $exit_nopin      =  1;
 my $exit_wrongpin   =  2;
@@ -98,14 +98,6 @@ if ( @ARGV != 0 ) {
     @ussd_queries = @ARGV;
 }
 
-# This is a list of modems that need the PDU format for query
-# As of now, these are all Huaweis...
-my @pdu_modems = (
-    'E160',
-    'E165G',
-    'E1550',
-);
-
 
 ########################################################################
 # Main
@@ -139,22 +131,6 @@ if ( ! $modem->probe() ) {
 
 $modem->echo (1);
 
-my $modem_model = $modem->model();
-
-if ( ! defined $use_cleartext ) {
-    if ( modem_needs_pdu_format ( $modem_model ) ) {
-        $log->DEBUG ("Modem type \"$modem_model\" needs PDU format for USSD query.");
-        $use_cleartext = 0;
-    }
-    else {
-        $log->DEBUG ("Modem type \"$modem_model\" needs cleartext for USSD query.");
-        $use_cleartext = 1;
-    }
-}
-else {
-    $log->DEBUG( 'Will use cleartext as given on the command line: ', $use_cleartext );
-}
-
 if ( $modem->pin_needed() ) {
     $log->DEBUG ("PIN needed");
     if ( ! defined $pin ) {
@@ -178,8 +154,10 @@ if ( ! $net_is_available ) {
     exit $exit_nonet;
 }
 
+my $ussdquery = GSMUSSD::UssdQuery->new($modem, $use_cleartext);
+
 if ( $cancel_ussd_session ) {
-    my $cancel_result = cancel_ussd_session();
+    my $cancel_result = $ussdquery->cancel_ussd_session();
     if ( $cancel_result->{ok} ) {
         print $cancel_result->{msg}, $/;
     }
@@ -189,12 +167,15 @@ if ( $cancel_ussd_session ) {
 }
 else {
     for my $ussd_query ( @ussd_queries ) {
-        if ( ! is_valid_ussd_query ( $ussd_query ) ) {
+        if ( ! $ussdquery->is_valid_ussd_query ( $ussd_query ) ) {
             print STDERR "WARNING: \"$ussd_query\" is not a valid USSD query - ignored.\n";
             next;
         }
-        my $ussd_result = do_ussd_query ( $ussd_query );
+        my $ussd_result = $ussdquery->do_ussd_query ( $ussd_query );
         if ( $ussd_result->{ok} ) {
+            if ( $ussdquery->is_in_session() ) {
+                print STDERR 'USSD session open, to cancel use "gsm-ussd -c".', $/;
+            }
             print $ussd_result->{msg}, $/;
         }
         else {
@@ -225,220 +206,6 @@ END {
         $modem->close();
     }
     $? = $exitcode;
-}
-
-
-########################################################################
-# Function: modem_needs_pdu_format
-# Args:     $model - The model type reported by the modem
-# Returns:  0   -   Modem type needs cleartext USSD query
-#           1   -   Modem type needs PDU format
-sub modem_needs_pdu_format {
-    my ($model) = @_;
-
-    foreach my $modem (@pdu_modems) {
-        if ( $model eq $modem ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-
-########################################################################
-# Function: is_valid_ussd_query
-# Args:     $query - The USSD query to check
-# Returns:  0   -   Query contains illegal characters
-#           1   -   Query is legal
-sub is_valid_ussd_query {
-    my ( $query ) = @_;
-
-    # The first RA checks for a standard USSD
-    # The second allows simple numbers as used by USSD sessions
-    if ( $query =~ m/^\*[0-9*]+#$/ || $query =~ m/^\d+$/) {
-        return $success;
-    }
-    return $fail;
-}
-
-
-########################################################################
-# Function: do_ussd_query
-# Args:     $query      The USSD query to send ('*100#')
-# Returns:  Hashref 
-#           Key 'ok':   $success if USSD query successfully transmitted
-#                       and answer received
-#                       $fail if USSD query aborted or not able to send
-#           Key 'msg':  Error message or USSD query result, in accordance
-#                       to the value of 'ok'.
-sub do_ussd_query {
-    my ( $query ) = @_;
-
-    $log->DEBUG ("Starting USSD query \"$query\"");
-
-    my $result = $modem->send_command (
-        ussd_query_cmd($query, $use_cleartext),
-        'wait_for_cmd_answer',
-    );
-
-    if ( $result->{ok} ) {
-        $log->DEBUG ("USSD query successful, answer received");
-        my ($response_type,$response,$encoding)
-            = $result->{description}
-            =~ m/
-                (\d+)           # Response type
-                (?:
-                    ,"([^"]+)"  # Response
-                    (?:
-                        ,(\d+)  # Encoding
-                    )?          # ... may be missing or ...
-                )?              # ... Response *and* Encoding may be missing
-            /ix;
-
-        if ( ! defined $response_type ) {
-            # Didn't the RE match?
-            $log->DEBUG ("Can't parse CUSD message: \"", $result->{description}, "\"");
-            return {
-                ok  => $fail,
-                msg =>  "Can't understand modem answer: \""
-                        . $result->{description} . "\"",
-            };
-        }
-        elsif ( $response_type == 0 ) {
-            $log->DEBUG ("USSD response type: No further action required (0)");
-        }
-        elsif ( $response_type == 1 ) {
-            $log->DEBUG ("USSD response type: Further action required (1)");
-            print STDERR "USSD session open, to cancel use \"gsm-ussd -c\".\n";
-        }
-        elsif ( $response_type == 2 ) {
-            my $msg = "USSD response type: USSD terminated by network (2)";
-            $log->DEBUG ($msg);
-            return { ok => $fail, msg => $msg };
-        }
-        elsif ( $response_type == 3 ) {
-            my $msg = ("USSD response type: Other local client has responded (3)");
-            $log->DEBUG ($msg);
-            return { ok => $fail, msg => $msg };
-        }
-        elsif ( $response_type == 4 ) {
-            my $msg = ("USSD response type: Operation not supported (4)");
-            $log->DEBUG ($msg);
-            return { ok => $fail, msg => $msg };
-        }
-        elsif ( $response_type == 5 ) {
-            my $msg = "USSD response type: Network timeout (5)";
-            $log->DEBUG ($msg);
-            return { ok => $fail, msg => $msg };
-        }
-        else {
-            my $msg = "CUSD message has unknown response type \"$response_type\"";
-            $log->DEBUG ($msg);
-            return { ok => $fail, msg => $msg };
-        }
-        # Only reached if USSD response type is 0 or 1
-        return { ok => $success, msg => interpret_ussd_data ($response, $encoding) };
-    }
-    else {
-        $log->DEBUG ("USSD query failed, error: " . $result->{description});
-        return { ok => $fail, msg => $result->{description} };
-    }
-}
-
-
-########################################################################
-# Function: cancel_ussd_session
-# Args:     None.
-# Returns:  Hashref 
-#           Key 'ok':   $success if USSD query successfully transmitted
-#                       and answer received
-#                       $fail if USSD query aborted or not able to send
-#           Key 'msg':  Error message or USSD query result, in accordance
-#                       to the value of 'ok'.
-sub cancel_ussd_session {
-
-    $log->DEBUG ('Trying to cancel USSD session');
-    my $result = $modem->send_command ( "AT+CUSD=2\r", 'wait_for_OK' );
-    if ( $result->{ok} ) {
-        my $msg = 'USSD cancel request successful';
-        $log->DEBUG ($msg);
-        return { ok => $success, msg => $msg };
-    }
-    else {
-        my $msg = 'No USSD session to cancel.';
-        $log->DEBUG ($msg);
-        return { ok => $fail, msg => $msg };
-    }
-}
-
-
-########################################################################
-# Function: interpret_ussd_data
-# Args:     $response   -   The USSD string response
-#           $encoding   -   The USSD encoding (dcs)
-# Returns:  String containint the USSD response in clear text
-sub interpret_ussd_data {
-    my ($response, $encoding) = @_;
-
-    if ( ! defined $encoding ) {
-        $log->DEBUG ("CUSD message has no encoding, interpreting as cleartext");
-        return $response;
-    }
-    my $dcs = GSMUSSD::DCS->new($encoding);
-    my $code= GSMUSSD::Code->new();
-
-    if ( $dcs->is_default_alphabet() ) {
-        $log->DEBUG ("Encoding \"$encoding\" says response is in default alphabet");
-        if ( $use_cleartext ) {
-            $log->DEBUG ("Modem uses cleartext, interpreting message as cleartext");
-            return $response;
-        }
-        elsif ( $encoding == 0 ) {
-            return $code->decode_8bit( $response );
-        }
-        elsif ( $encoding == 15 ) {
-            return decode( 'gsm0338', $code->decode_7bit( $response ) );
-        }
-        else {
-            $log->DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
-            return $code->decode_8bit( $response );
-        }
-        # NOTREACHED
-    }
-    elsif ( $dcs->is_ucs2() ) {
-        $log->DEBUG ("Encoding \"$encoding\" says response is in UCS2-BE");
-        return decode ('UCS-2BE', $code->decode_8bit ($response));
-    }
-    elsif ( $dcs->is_8bit() ) {
-        $log->DEBUG ("Encoding \"$encoding\" says response is in 8bit");
-        return $code->decode_8bit ($response);
-    }
-    else {
-        $log->DEBUG ("CUSD message has unknown encoding \"$encoding\", using 0");
-        return $code->decode_8bit( $response );
-    }
-    # NOTREACHED
-}
-
-
-########################################################################
-# Function: ussd_query_cmd
-# Args:     The USSD-Query to send 
-# Returns:  An AT+CUSD command with properly encoded args
-sub ussd_query_cmd {
-	my ($ussd_cmd)                  = @_;
-	my $result_code_presentation    = '1';      # Enable result code presentation
-	my $encoding                    = '15';     # Default alphabet, 7bit
-	my $ussd_string;
-
-    if ( $use_cleartext ) {
-        $ussd_string = $ussd_cmd;
-    }
-    else {
-        my $code = GSMUSSD::Code->new();
-        $ussd_string = $code->encode_7bit( encode('gsm0338', $ussd_cmd) );
-    }
-	return sprintf 'AT+CUSD=%s,"%s",%s', $result_code_presentation, $ussd_string, $encoding;
 }
 
 
