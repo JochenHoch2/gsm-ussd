@@ -344,6 +344,7 @@ my %gsm_error = (
 # As of now, these are all Huaweis...
 my @pdu_modems = (
     'E160',
+    'E160X',
     'E165G',
     'E1550',
 );
