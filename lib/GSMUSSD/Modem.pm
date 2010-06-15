@@ -44,7 +44,7 @@ my %expect_programs = (
         ],
         # Fail states of the modem (network lost, SIM problems, ...)
         [ qr/\r\n(\+CM[SE] ERROR):[ ]*([^\r\n]*)\r\n/i
-            => \&network_error
+            => \&_network_error
         ],
         # AT command (TTY echo of input)
         [ qr/^AT([^\r\n]*)\r/i
