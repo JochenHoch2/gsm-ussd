@@ -166,12 +166,12 @@ if ( $cancel_ussd_session ) {
     }
 }
 else {
-    for my $ussd_query ( @ussd_queries ) {
-        if ( ! $ussdquery->is_valid_ussd_query ( $ussd_query ) ) {
-            print STDERR "WARNING: \"$ussd_query\" is not a valid USSD query - ignored.\n";
+    for my $ussd_query_arg ( @ussd_queries ) {
+        if ( ! $ussdquery->is_valid_ussd_query ( $ussd_query_arg ) ) {
+            print STDERR "WARNING: \"$ussd_query_arg\" is not a valid USSD query - ignored.\n";
             next;
         }
-        my $ussd_result = $ussdquery->do_ussd_query ( $ussd_query );
+        my $ussd_result = $ussdquery->do_ussd_query ( $ussd_query_arg );
         if ( $ussd_result->{ok} ) {
             if ( $ussdquery->is_in_session() ) {
                 print STDERR 'USSD session open, to cancel use "gsm-ussd -c".', $/;
