@@ -57,6 +57,7 @@ sub new {
         modem                   => $modem,
         modem_uses_cleartext    => 0,
         session                 => 0,
+        answer                  => '',
     };
     bless $self, $class;
 
@@ -82,6 +83,13 @@ sub is_in_session {
     my ($self) = @_;
 
     return $self->{session};
+}
+
+
+sub answer {
+    my ($self) = @_;
+
+    return $self->{answer};
 }
 
 
@@ -119,15 +127,10 @@ sub is_valid_ussd_query {
 
 
 ########################################################################
-# Function: do_ussd_query
+# Method:   query
 # Args:     $query      The USSD query to send ('*100#')
-# Returns:  Hashref 
-#           Key 'ok':   $success if USSD query successfully transmitted
-#                       and answer received
-#                       $fail if USSD query aborted or not able to send
-#           Key 'msg':  Error message or USSD query result, in accordance
-#                       to the value of 'ok'.
-sub do_ussd_query {
+# Returns:  
+sub query {
     my ( $self, $query ) = @_;
 
     $self->{log}->DEBUG ('Starting USSD query', $query);
@@ -153,12 +156,9 @@ sub do_ussd_query {
 
         if ( ! defined $response_type ) {
             # Didn't the RE match?
-            $self->{log}->DEBUG ("Can't parse CUSD message: \"", $result->{description}, "\"");
-            return {
-                ok  => $fail,
-                msg =>  "Can't understand modem answer: \""
-                        . $result->{description} . "\"",
-            };
+            $self->{log}->DEBUG ("Can't parse CUSD message: \"$result->{description}\"");
+            $self->{answer} = "Can't understand modem answer: \"$result->{description}\"";
+            return $fail;
         }
         elsif ( $response_type == 0 ) {
             $self->{log}->DEBUG ("USSD response type: No further action required (0)");
@@ -166,44 +166,51 @@ sub do_ussd_query {
         }
         elsif ( $response_type == 1 ) {
             $self->{log}->DEBUG ("USSD response type: Further action required (1)");
-            $self->{session} = 1; # print STDERR "USSD session open, to cancel use \"gsm-ussd -c\".\n";
+            $self->{session} = 1;
         }
         elsif ( $response_type == 2 ) {
             my $msg = "USSD response type: USSD terminated by network (2)";
             $self->{log}->DEBUG ($msg);
             $self->{session} = 0;
-            return { ok => $fail, msg => $msg };
+            $self->{answer} = $msg;
+            return $fail;
         }
         elsif ( $response_type == 3 ) {
             my $msg = ("USSD response type: Other local client has responded (3)");
             $self->{log}->DEBUG ($msg);
             $self->{session} = 0;
-            return { ok => $fail, msg => $msg };
+            $self->{answer} = $msg;
+            return $fail;
         }
         elsif ( $response_type == 4 ) {
             my $msg = ("USSD response type: Operation not supported (4)");
             $self->{log}->DEBUG ($msg);
             $self->{session} = 0;
-            return { ok => $fail, msg => $msg };
+            $self->{answer} = $msg;
+            return $fail;
         }
         elsif ( $response_type == 5 ) {
             my $msg = "USSD response type: Network timeout (5)";
             $self->{log}->DEBUG ($msg);
             $self->{session} = 0;
-            return { ok => $fail, msg => $msg };
+            $self->{answer} = $msg;
+            return $fail;
         }
         else {
             my $msg = "CUSD message has unknown response type \"$response_type\"";
             $self->{log}->DEBUG ($msg);
             $self->{session} = 0;
-            return { ok => $fail, msg => $msg };
+            $self->{answer} = $msg;
+            return $fail;
         }
         # Only reached if USSD response type is 0 or 1
-        return { ok => $success, msg => $self->_interpret_ussd_data ($response, $dcs) };
+        $self->{answer} = $self->_interpret_ussd_data ($response, $dcs);
+        return $success;
     }
     else {
         $self->{log}->DEBUG ("USSD query failed, error: " . $result->{description});
-        return { ok => $fail, msg => $result->{description} };
+        $self->{answer} = $result->{description};
+        return $fail;
     }
 }
 
@@ -211,12 +218,7 @@ sub do_ussd_query {
 ########################################################################
 # Method:   cancel_ussd_session
 # Args:     None.
-# Returns:  Hashref 
-#           Key 'ok':   $success if USSD query successfully transmitted
-#                       and answer received
-#                       $fail if USSD query aborted or not able to send
-#           Key 'msg':  Error message or USSD query result, in accordance
-#                       to the value of 'ok'.
+# Returns:  
 sub cancel_ussd_session {
     my ($self) = @_;
 
@@ -225,11 +227,13 @@ sub cancel_ussd_session {
     if ( $result->{ok} ) {
         my $msg = 'USSD cancel request successful';
         $self->{log}->DEBUG ($msg);
-        return { ok => $success, msg => $msg };
+        $self->{answer} = $msg;
+        return $success;
     }
     my $msg = 'No USSD session to cancel.';
     $self->{log}->DEBUG ($msg);
-    return { ok => $fail, msg => $msg };
+    $self->{answer} = $msg;
+    return $fail;
 }
 
 

@@ -157,12 +157,12 @@ if ( ! $net_is_available ) {
 my $ussdquery = GSMUSSD::UssdQuery->new($modem, $use_cleartext);
 
 if ( $cancel_ussd_session ) {
-    my $cancel_result = $ussdquery->cancel_ussd_session();
-    if ( $cancel_result->{ok} ) {
-        print $cancel_result->{msg}, $/;
+    my $cancel_ok = $ussdquery->cancel_ussd_session();
+    if ( $cancel_ok ) {
+        print $ussdquery->answer(), $/;
     }
     else {
-        print STDERR $cancel_result->{msg}, $/;
+        print STDERR $ussdquery->answer(), $/;
     }
 }
 else {
@@ -171,15 +171,15 @@ else {
             print STDERR "WARNING: \"$ussd_query_arg\" is not a valid USSD query - ignored.\n";
             next;
         }
-        my $ussd_result = $ussdquery->do_ussd_query ( $ussd_query_arg );
-        if ( $ussd_result->{ok} ) {
+        my $ussd_ok = $ussdquery->query ( $ussd_query_arg );
+        if ( $ussd_ok ) {
             if ( $ussdquery->is_in_session() ) {
                 print STDERR 'USSD session open, to cancel use "gsm-ussd -c".', $/;
             }
-            print $ussd_result->{msg}, $/;
+            print $ussdquery->answer(), $/;
         }
         else {
-            print STDERR $ussd_result->{msg}, $/;
+            print STDERR $ussdquery->answer(), $/;
         }
     }
 }
