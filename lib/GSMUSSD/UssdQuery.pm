@@ -135,15 +135,15 @@ sub query {
 
     $self->{log}->DEBUG ('Starting USSD query', $query);
 
-    my $result = $self->{modem}->send_command (
+    my $query_ok = $self->{modem}->send_command (
         $self->ussd_query_cmd($query),
         'wait_for_cmd_answer',
     );
 
-    if ( $result->{ok} ) {
+    if ( $query_ok ) {
         $self->{log}->DEBUG ("USSD query successful, answer received");
         my ($response_type,$response,$dcs)
-            = $result->{description}
+            = $self->{modem}->description()
             =~ m/
                 (\d+)           # Response type
                 (?:
@@ -156,8 +156,8 @@ sub query {
 
         if ( ! defined $response_type ) {
             # Didn't the RE match?
-            $self->{log}->DEBUG ("Can't parse CUSD message: \"$result->{description}\"");
-            $self->{answer} = "Can't understand modem answer: \"$result->{description}\"";
+            $self->{log}->DEBUG ("Can't parse CUSD message: ", $self->{modem}->description() );
+            $self->{answer} = "Can't understand modem answer: " . $self->{modem}->description();
             return $fail;
         }
         elsif ( $response_type == 0 ) {
@@ -208,8 +208,8 @@ sub query {
         return $success;
     }
     else {
-        $self->{log}->DEBUG ("USSD query failed, error: " . $result->{description});
-        $self->{answer} = $result->{description};
+        $self->{log}->DEBUG ("USSD query failed, error: " . $self->{modem}->description() );
+        $self->{answer} = $self->{modem}->description();
         return $fail;
     }
 }
@@ -223,8 +223,8 @@ sub cancel_ussd_session {
     my ($self) = @_;
 
     $self->{log}->DEBUG ('Trying to cancel USSD session');
-    my $result = $self->{modem}->send_command ( "AT+CUSD=2\r", 'wait_for_OK' );
-    if ( $result->{ok} ) {
+    my $cancel_ok = $self->{modem}->send_command ( "AT+CUSD=2\r", 'wait_for_OK' );
+    if ( $cancel_ok ) {
         my $msg = 'USSD cancel request successful';
         $self->{log}->DEBUG ($msg);
         $self->{answer} = $msg;

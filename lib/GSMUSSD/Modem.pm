@@ -123,6 +123,8 @@ sub new {
         error                   =>  undef,
         model                   =>  undef,
         # manufacturer            =>  undef,
+        match                   =>  '',
+        description             =>  '',
     };
 	bless $self, $class;
     
@@ -135,6 +137,20 @@ sub error {
     my ($self) = @_;
     
     return $self->{error};
+}
+
+
+sub match {
+    my ($self) = @_;
+    
+    return $self->{match};
+}
+
+
+sub description {
+    my ($self) = @_;
+    
+    return $self->{description};
 }
 
 
@@ -243,101 +259,77 @@ sub send_command {
         $match_string =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
         if ( $first_word eq 'ERROR' ) {
             # OK/ERROR are two of the three "command done" markers.
-            return {
-                ok          => $fail,
-                match       => $match_string,
-                description => 'Broken command',
-            };
+            $self->{match} = $match_string;
+            $self->{description} = 'Broken modem command';
+            return $fail;
         }
         elsif ( $first_word eq '+CMS ERROR' ) {
             # After this error there will be no OK/ERROR anymore
             my $errormessage = GSMUSSD::NetworkErrors->new()->get_cms_error($args);
-            return {
-                ok          => $fail,
-                match       => $match_string,
-                description => "GSM network error: $errormessage ($args)",
-            };
+            $self->{match} = $match_string;
+            $self->{description} = "GSM network error: $errormessage ($args)";
+            return $fail;
         }
         elsif ( $first_word eq '+CME ERROR' ) {
             # After this error there will be no OK/ERROR anymore
             my $errormessage = GSMUSSD::NetworkErrors->new()->get_cme_error($args);
-            return {
-                ok          => $fail,
-                match       => $match_string,
-                description => "GSM equipment error: $errormessage ($args)",
-            };
+            $self->{match} = $match_string;
+            $self->{description} = "GSM equipment error: $errormessage ($args)";
+            return $fail;
         }
         elsif ( $first_word eq 'OK' ) {
             # $before_match contains data between AT and OK
             $before_match =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
-            return {
-                ok          => $success,
-                match       => $match_string,
-                description => $before_match,
-            };
+            $self->{match}  = $match_string;
+            $self->{description}    = $before_match;
+            return $success;
         }
         elsif ( $first_word =~ /^[\^\+]/ ) {
-            return {
-                ok          => $success,
-                match       => $match_string,
-                description => $match_string,
-            };
+            $self->{match}       = $match_string;
+            $self->{description} = $match_string;
+            return $success;
         }
         else {
-            return {
-                ok          => $fail,
-                match       => $match_string,
-                description => "PANIC! Can't parse Expect result: \"$match_string\"",
-            } ;
+            $self->{match}       = $match_string;
+            $self->{description} = "PANIC! Can't parse Expect result: \"$match_string\"";
+            return $fail;
         }
     }
     else {
         # Report Expect error and bail
         if ($error =~ /^1:/) {
             # Timeout
-            return {
-                ok => $fail,
-                match => $error,
-                description => "No answer for $self->{modem_timeout} seconds!",
-            };
+            $self->{match}       = $error;
+            $self->{description} = "No answer for $self->{modem_timeout} seconds!";
+            return $fail;
         }
         elsif ($error =~ /^2:/) {
             # EOF
-            return {
-                ok          => $fail,
-                match       => $error,
-                description => "EOF from modem received - modem unplugged?",
-            };
+            $self->{match}       = $error;
+            $self->{description} = "EOF from modem received - modem unplugged?";
+            return $fail;
         }
         elsif ($error =~ /^3:/) {
             # Spawn id died
-            return {
-                ok          => $fail,
-                match       => $error,
-                description => "PANIC! Can't happen - spawn ID died!",
-            };
+            $self->{match}       = $error;
+            $self->{description} = "PANIC! Can't happen - spawn ID died!";
+            return $fail;
         }
         elsif ($error =~ /^4:/) {
             # Read error
-            return {
-                ok          => $fail,
-                match       => $error,
-                description => "Read error accessing modem: $!",
-            };
+            $self->{match}       = $error;
+            $self->{description} = "Read error accessing modem: $!";
+            return $fail;
         }
         else {
-            return {
-                ok          => $fail,
-                match       => $error,
-                description => "PANIC! Can't happen - unknown Expect error \"$error\"",
-            };
+            $self->{match}       = $error;
+            $self->{description} = "PANIC! Can't happen - unknown Expect error \"$error\"";
+            return $fail;
         }
     }
-    return {
-        ok          => $fail,
-        match       => '',
-        description => "PANIC! Can't happen - left send_command() unexpectedly!",
-    };
+    $self->{match}       = '';
+    $self->{description} = "PANIC! Can't happen - left send_command() unexpectedly!";
+    return $fail;
 }
 
 
@@ -353,14 +345,14 @@ sub probe {
     my ($self) = @_;
 
     $self->{log}->DEBUG ("Probing modem (AT)");
-    my $result = $self->send_command ( "AT", 'wait_for_OK' );
-    if ( $result->{ok} ) {
+    my $probe_ok = $self->send_command ( "AT", 'wait_for_OK' );
+    if ( $probe_ok ) {
         $self->{log}->DEBUG ("Modem found (AT->OK)");
         return 1;
     }
     else {
-        $self->{log}->DEBUG ("No modem found, error: $result->{description}");
-        $self->{error} = $result->{description};
+        $self->{log}->DEBUG ("No modem found, error: $self->{description}");
+        $self->{error} = $self->{description};
         return 0;
     }
 }
@@ -385,14 +377,14 @@ sub echo {
         $self->{log}->DEBUG ("Disabling modem echo ($modem_echo_command)");
     }
 
-    my $result = $self->send_command ( $modem_echo_command, 'wait_for_OK' );
-    if ( $result->{ok} ) { 
+    my $echo_ok = $self->send_command ( $modem_echo_command, 'wait_for_OK' );
+    if ( $echo_ok ) { 
         $self->{log}->DEBUG ("$modem_echo_command successful");
         return 1;
     }   
     else {
-        $self->{log}->DEBUG ("$modem_echo_command failed, error: $result->{description}");
-        $self->{error} = $result->{description};
+        $self->{log}->DEBUG ("$modem_echo_command failed, error: $self->{description}");
+        $self->{error} = $self->{description};
         return 0;
     }   
 }
@@ -408,30 +400,30 @@ sub pin_needed {
 
     $self->{log}->DEBUG ("Starting SIM state query (AT+CPIN?)");
 
-    my $result = $self->send_command ( 'AT+CPIN?', 'wait_for_OK' );
-    if ( $result->{ok} ) {
+    my $pin_ok = $self->send_command ( 'AT+CPIN?', 'wait_for_OK' );
+    if ( $pin_ok ) {
         $self->{log}->DEBUG ("Got answer for SIM state query");
-        if ( $result->{match} eq 'OK') {
-            if ( $result->{description} =~ m/READY/ ) {
+        if ( $self->{match} eq 'OK') {
+            if ( $self->{description} =~ m/READY/ ) {
                 $self->{log}->DEBUG ("SIM card is unlocked");
                 return 0;
             }
-            elsif ( $result->{description} =~ m/SIM PIN/ ) {
+            elsif ( $self->{description} =~ m/SIM PIN/ ) {
                 $self->{log}->DEBUG ("SIM card is locked");
                 return 1;
             }
             else {
-                $self->{log}->DEBUG ("Couldn't parse SIM state query result: $result->{description}");
+                $self->{log}->DEBUG ("Couldn't parse SIM state query result: $self->{description}");
                 return 1;
             }
         }
         else {
-            $self->{log}->DEBUG ("SIM card locked - failed query? -> $result->{match}" );
+            $self->{log}->DEBUG ("SIM card locked - failed query? -> $self->{match}" );
             return 1;
         }
     }
     else {
-        $self->{log}->DEBUG ("SIM state query failed, error: $result->{description}" );
+        $self->{log}->DEBUG ("SIM state query failed, error: $self->{description}" );
         return 1;
     }
 }
@@ -452,15 +444,16 @@ sub model {
         $self->{log}->DEBUG ("Modem model $self->{model} cached");
         return $self->{model};
     }
+
     $self->{log}->DEBUG ("Querying modem type");
-    my $result = $self->send_command ( "AT+CGMM", 'wait_for_OK' );
-    if ( $result->{ok} ) {
-        $self->{log}->DEBUG ("Modem type found: ", $result->{description} );
-        $self->{model} = $result->{description};
+    my $model_ok = $self->send_command ( "AT+CGMM", 'wait_for_OK' );
+    if ( $model_ok ) {
+        $self->{log}->DEBUG ("Modem type found: ", $self->{description} );
+        $self->{model} = $self->{description};
         return $self->{model};
     }
     else {
-        $self->{log}->DEBUG ("No modem type found: ", $result->{description});
+        $self->{log}->DEBUG ("No modem type found: ", $self->{description});
         return '';
     }
 }
@@ -475,14 +468,14 @@ sub enter_pin {
     my ($self, $pin) = @_;
 
     $self->{log}->DEBUG ("Unlocking SIM using PIN $pin");
-    my $result = $self->send_command ( "AT+CPIN=$pin", 'wait_for_OK' );
-    if ( $result->{ok} ) {
-        $self->{log}->DEBUG ("SIM card unlocked: ", $result->{match} );
+    my $pin_ok = $self->send_command ( "AT+CPIN=$pin", 'wait_for_OK' );
+    if ( $pin_ok ) {
+        $self->{log}->DEBUG ("SIM card unlocked: ", $self->{match} );
         return 1;
     }
     else {
-        $self->{log}->DEBUG ("SIM card still locked, error: ", $result->{description});
-        $self->{error} = $result->{description};
+        $self->{log}->DEBUG ("SIM card still locked, error: ", $self->{description});
+        $self->{error} = $self->{description};
         return 0;
     }
 }
@@ -502,12 +495,12 @@ sub get_net_registration_state {
     $self->{log}->DEBUG ("Waiting for net registration, max $self->{registration_retries} tries");
     while ( $num_tries <= $self->{registration_retries} ) {
         $self->{log}->DEBUG ("Try: $num_tries");
-        my $result = $self->send_command ( 'AT+CREG?', 'wait_for_OK' );
-        if ( $result->{ok} ) {
+        my $reg_ok = $self->send_command ( 'AT+CREG?', 'wait_for_OK' );
+        if ( $reg_ok ) {
             $self->{log}->DEBUG ('Net registration query result received, parsing');
-            my ($n, $stat) = $result->{description} =~ m/\+CREG:\s+(\d),(\d)/i;
+            my ($n, $stat) = $self->{description} =~ m/\+CREG:\s+(\d),(\d)/i;
             if ( ! defined $n || ! defined $stat) {
-                $last_state_message = 'Cannot parse +CREG answer: ' . $result->{description}; 
+                $last_state_message = 'Cannot parse +CREG answer: ' . $self->{description}; 
                 $self->{log}->DEBUG ( $last_state_message );
                 return ( 0, $last_state_message );
             }
@@ -553,7 +546,7 @@ sub get_net_registration_state {
             }
         }
         else {
-            $last_state_message = 'Querying net registration failed, error: ' . $result->{description}; 
+            $last_state_message = 'Querying net registration failed, error: ' . $self->{description}; 
             $self->{log}->DEBUG ( $last_state_message );
             return ( 0, $last_state_message );
         }
