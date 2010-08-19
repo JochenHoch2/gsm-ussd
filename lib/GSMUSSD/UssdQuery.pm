@@ -147,7 +147,7 @@ sub query {
             =~ m/
                 (\d+)           # Response type
                 (?:
-                    ,"([^"]+)"  # Response
+                    ,"([^"]*)"  # Response
                     (?:
                         ,(\d+)  # Encoding
                     )?          # ... may be missing or ...
