@@ -254,7 +254,7 @@ sub _interpret_ussd_data {
 
     if ( $dcs->is_default_alphabet() ) {
         $self->{log}->DEBUG ("Encoding \"$enc\" says response is in default alphabet");
-        if ( $self->{use_cleartext} ) {
+        if ( $self->{modem_uses_cleartext} ) {
             $self->{log}->DEBUG ("Modem uses cleartext, interpreting message as cleartext");
             return $response;
         }
