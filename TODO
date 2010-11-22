@@ -3,6 +3,23 @@ TODO
 
 This is just a collection of ideas. Care to comment?
 
+* Rework Expect scripts: One to send commands and wait for OK/ERROR,
+  one to wait for +CUSD: answer. Why didn't I do it that way
+  before?
+
+* Do a ATZ before actual modem use. The Qualcomm Gobi 2000 seems
+  be a bit brittle and can get wedged, always answering ERROR to
+  completely correct USSD queries. An ATZ removes the wegditude.
+  Caution: Might have side effects with other modems? USSD sessions?
+
+* Completely do without a "these modems need PDU mode" list by 
+  simply trying a cleartext USSD query and retry in PDU mode if
+  the first query ERRORs.
+
+* Factor out PIN handling/setting. Could be managed by a 
+  "gsm-pin" command which allows to query the SIM state in a 
+  more thorough way that gsm-ussd does right now.
+
 * Query +CMEE, set it to 1 to receive CMS/CME ERROR messages,
   reset it to old value.
 
