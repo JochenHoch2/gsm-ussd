@@ -129,6 +129,7 @@ if ( ! $modem->probe() ) {
     exit $exit_error;
 }
 
+$modem->reset();
 $modem->echo (1);
 
 if ( $modem->pin_needed() ) {
