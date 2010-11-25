@@ -41,7 +41,8 @@ my $success = 1;
 ########################################################################
 # Method:   new
 # Type:     Constructor
-# Args:     None
+# Args:     $modem  - a GSMUSSD::Modem object
+#           $use_cleartext  - Modem will use cleartext instead of PDU mode
 sub new {
     my ($class, $modem, $use_cleartext) = @_;
 
@@ -81,7 +82,10 @@ sub new {
 
 
 ########################################################################
-# Getter
+# Method:   is_in_session
+# Args:     None.
+# Returns:  0   - USSD session opened
+#           1   - No USSD session open
 sub is_in_session {
     my ($self) = @_;
 
@@ -90,7 +94,9 @@ sub is_in_session {
 
 
 ########################################################################
-# Getter
+# Method:   answer
+# Args:     None.
+# Returns:  String containing the last meaningfull modem answer.
 sub answer {
     my ($self) = @_;
 
@@ -229,7 +235,8 @@ sub query {
 ########################################################################
 # Method:   cancel_ussd_session
 # Args:     None.
-# Returns:  
+# Returns:  $success    - Session was cancelled.
+#           $fail       - No session to cancel or error while cancelling.
 sub cancel_ussd_session {
     my ($self) = @_;
 
@@ -252,7 +259,7 @@ sub cancel_ussd_session {
 # Function: _interpret_ussd_data
 # Args:     $response   -   The USSD string response
 #           $encoding   -   The USSD encoding (dcs)
-# Returns:  String containint the USSD response in clear text
+# Returns:  String containing the USSD response in clear text
 sub _interpret_ussd_data {
     my ($self, $response, $enc) = @_;
 
