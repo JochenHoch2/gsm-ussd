@@ -149,6 +149,9 @@ sub open {
 
 
 ########################################################################
+# Method:   close
+# Args:     None.
+# Returns:  None.
 sub close {
     my ($self) = @_;
 
