@@ -407,11 +407,34 @@ sub probe {
 
 
 ########################################################################
+# Method:   reset
+# Args:     None.
+# Returns:  $success    -   Reset done
+#           $fail       -   Reset failed. Time to give up?
+sub reset {
+    my ($self) = @_;
+
+    $self->{log}->DEBUG ("Resetting modem (ATZ)");
+
+    my $reset_ok = $self->send_command ( 'ATZ' );
+    if ( $reset_ok ) { 
+        $self->{log}->DEBUG ("Reset successful");
+        return $success;
+    }   
+    else {
+        $self->{log}->DEBUG ("Reset failed, error: $self->{description}");
+        $self->{error} = $self->{description};
+        return $fail;
+    }   
+}
+
+
+########################################################################
 # Method:   echo
 # Args:     true    -   Echo on
 #           false   -   Echo off
-# Returns:  0   -   Success
-#           1   -   Fail 
+# Returns:  $success    -   Success
+#           $fail       -   Fail 
 sub echo {
     my ($self, $echo_on) = @_;
     my $modem_echo_command = '';
