@@ -44,12 +44,6 @@ my %modem_answer = (
             qr/^AT([^\r\n]*)\r/i
                 => \&_at_found
         ],
-        # Modem answers to command
-        ok_error    =>  [
-            qr/\r\n(OK|ERROR)\r\n/i
-                =>  \&_ok_error
-        ],
-        # Command successfully done
         ok          =>  [
             qr/\r\nOK\r\n/i
                 =>  \&_ok
@@ -646,13 +640,6 @@ sub _at_found {
 
     GSMUSSD::Loggit->new()->DEBUG( 'AT found, -> ', $exp->match() );
     exp_continue_timeout;
-}
-
-
-sub _ok_error {
-    my $exp = shift;
-
-    GSMUSSD::Loggit->new()->DEBUG( 'OK/ERROR found: ', ($exp->matchlist())[0] );
 }
 
 
