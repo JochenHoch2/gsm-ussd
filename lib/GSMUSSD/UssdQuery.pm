@@ -79,6 +79,9 @@ sub new {
     return $self;
 }
 
+
+########################################################################
+# Getter
 sub is_in_session {
     my ($self) = @_;
 
@@ -86,6 +89,8 @@ sub is_in_session {
 }
 
 
+########################################################################
+# Getter
 sub answer {
     my ($self) = @_;
 
@@ -128,84 +133,90 @@ sub is_valid_ussd_query {
 
 ########################################################################
 # Method:   query
-# Args:     $query      The USSD query to send ('*100#')
+# Args:     $query      The USSD query to send, e.g. '*100#'
 # Returns:  
 sub query {
     my ( $self, $query ) = @_;
 
+    my $cusd_answer_re = qr/
+        \+CUSD:
+        \s*
+        (\d+)
+        (?:
+            ,
+            \"([^\\\"]*(?:\\.[^\\\"]*)*)\"
+            (?:
+                ,
+                (\d+)
+            )?
+        )?
+    /xsi;
+
     $self->{log}->DEBUG ('Starting USSD query', $query);
 
-    my $query_ok = $self->{modem}->send_command (
-        $self->ussd_query_cmd($query),
-        'wait_for_cmd_answer',
-    );
+    my $query_ok = $self->{modem}->send_command ( $self->ussd_query_cmd($query) );
 
     if ( $query_ok ) {
-        $self->{log}->DEBUG ("USSD query successful, answer received");
-        my ($response_type,$response,$dcs)
-            = $self->{modem}->description()
-            =~ m/
-                (\d+)           # Response type
-                (?:
-                    ,"([^"]*)"  # Response
-                    (?:
-                        ,(\d+)  # Encoding
-                    )?          # ... may be missing or ...
-                )?              # ... Response *and* Encoding may be missing
-            /ix;
+        $self->{log}->DEBUG ("USSD query successfully sent, waiting for answer...");
 
-        if ( ! defined $response_type ) {
-            # Didn't the RE match?
-            $self->{log}->DEBUG ("Can't parse CUSD message: ", $self->{modem}->description() );
-            $self->{answer} = "Can't understand modem answer: " . $self->{modem}->description();
-            return $fail;
-        }
-        elsif ( $response_type == 0 ) {
-            $self->{log}->DEBUG ("USSD response type: No further action required (0)");
-            $self->{session} = 0;
-        }
-        elsif ( $response_type == 1 ) {
-            $self->{log}->DEBUG ("USSD response type: Further action required (1)");
-            $self->{session} = 1;
-        }
-        elsif ( $response_type == 2 ) {
-            my $msg = "USSD response type: USSD terminated by network (2)";
-            $self->{log}->DEBUG ($msg);
-            $self->{session} = 0;
-            $self->{answer} = $msg;
-            return $fail;
-        }
-        elsif ( $response_type == 3 ) {
-            my $msg = ("USSD response type: Other local client has responded (3)");
-            $self->{log}->DEBUG ($msg);
-            $self->{session} = 0;
-            $self->{answer} = $msg;
-            return $fail;
-        }
-        elsif ( $response_type == 4 ) {
-            my $msg = ("USSD response type: Operation not supported (4)");
-            $self->{log}->DEBUG ($msg);
-            $self->{session} = 0;
-            $self->{answer} = $msg;
-            return $fail;
-        }
-        elsif ( $response_type == 5 ) {
-            my $msg = "USSD response type: Network timeout (5)";
-            $self->{log}->DEBUG ($msg);
-            $self->{session} = 0;
-            $self->{answer} = $msg;
-            return $fail;
+        my $cusd_ok = $self->{modem}->wait_for( qr/\r\n$cusd_answer_re\r\n/ );
+        if ( $cusd_ok ) {
+            $self->{log}->DEBUG ("Expected answer received.");
+            my ($response_type, $response, $dcs) = 
+                $self->{modem}->{match} =~ m/$cusd_answer_re/;
+            # print $response, $/;
+            if ( ! defined $response_type ) {
+                # Didn't the RE match?
+                $self->{log}->DEBUG ("Can't parse CUSD message: \"", $self->{modem}->{match}, "\"");
+                $self->{answer} = "Can't understand modem answer: \"$self->{modem}->{match}\"";
+                return $fail;
+            }
+            elsif ( $response_type == 0 ) {
+                $self->{log}->DEBUG ("USSD response type: No further action required (0)");
+            }
+            elsif ( $response_type == 1 ) {
+                $self->{log}->DEBUG ("USSD response type: Further action required (1)");
+                print STDERR "USSD session open, to cancel use \"gsm-ussd -c\".\n";
+            }
+            elsif ( $response_type == 2 ) {
+                my $msg = "USSD response type: USSD terminated by network (2)";
+                $self->{log}->DEBUG ($msg); 
+                $self->{answer} = $msg;
+                return $fail;
+            }
+            elsif ( $response_type == 3 ) {
+                my $msg = ("USSD response type: Other local client has responded (3)");
+                $self->{log}->DEBUG ($msg);
+                $self->{answer} = $msg;
+                return $fail;
+            }
+            elsif ( $response_type == 4 ) {
+                my $msg = ("USSD response type: Operation not supported (4)");
+                $self->{log}->DEBUG ($msg);
+                $self->{answer} = $msg;
+                return $fail;
+            }
+            elsif ( $response_type == 5 ) {
+                my $msg = "USSD response type: Network timeout (5)";
+                $self->{log}->DEBUG ($msg);
+                $self->{answer} = $msg;
+                return $fail;
+            }
+            else {
+                my $msg = "CUSD message has unknown response type \"$response_type\"";
+                $self->{log}->DEBUG ($msg);
+                $self->{answer} = $msg;
+                return $fail;
+            }
+            # Only reached if USSD response type is 0 or 1
+            $self->{answer} = $self->_interpret_ussd_data ($response, $dcs);
+            return $success;
         }
         else {
-            my $msg = "CUSD message has unknown response type \"$response_type\"";
-            $self->{log}->DEBUG ($msg);
-            $self->{session} = 0;
-            $self->{answer} = $msg;
+            $self->{log}->DEBUG ("No answer to USSD query, error: " . $self->{modem}->description() );
+            $self->{answer} = $self->{modem}->description();
             return $fail;
         }
-        # Only reached if USSD response type is 0 or 1
-        $self->{answer} = $self->_interpret_ussd_data ($response, $dcs);
-        return $success;
     }
     else {
         $self->{log}->DEBUG ("USSD query failed, error: " . $self->{modem}->description() );
@@ -223,7 +234,7 @@ sub cancel_ussd_session {
     my ($self) = @_;
 
     $self->{log}->DEBUG ('Trying to cancel USSD session');
-    my $cancel_ok = $self->{modem}->send_command ( "AT+CUSD=2\r", 'wait_for_OK' );
+    my $cancel_ok = $self->{modem}->send_command ( 'AT+CUSD=2' );
     if ( $cancel_ok ) {
         my $msg = 'USSD cancel request successful';
         $self->{log}->DEBUG ($msg);

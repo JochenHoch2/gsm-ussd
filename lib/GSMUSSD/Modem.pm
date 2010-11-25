@@ -27,74 +27,38 @@ my $wait_time_between_net_checks    = 3;
 my $fail    = 0;
 my $success = 1;
 
-# The Expect programs differ in the way they react to modem answers
-my %expect_programs = (
-    # wait_for_OK:  The modem will react with OK/ERROR/+CM[SE] ERROR
-    #               This in itself will be the result, further information
-    #               might be available between AT... and OK.
-    wait_for_OK =>  [
-        # Ignore status messages
-        [ qr/\r\n([\+\^](?:BOOT|DSFLOWRPT|MODE|RSSI|SIMST|SRVST)):[ ]*([^\r\n]*)\r\n/i
-            => \&_ignore_state_line
+# Possible modem answers
+my %modem_answer = (
+        # Fail states of the network
+        cms_error  =>  [
+            qr/\r\n\+(CMS ERROR):[ ]*([^\r\n]*)\r\n/i
+                => \&_network_error
         ],
-        # Identify +CREG status message
-        # (+CREG modem answer has got two arguments "\d,\d"!)
-        [ qr/\r\n(\+CREG):[ ]*(\d)\r\n/i
-            => \&_ignore_state_line
-        ],
-        # Fail states of the modem (network lost, SIM problems, ...)
-        [ qr/\r\n(\+CM[SE] ERROR):[ ]*([^\r\n]*)\r\n/i
-            => \&_network_error
+        # Fail states of the modem equipment
+        cme_error  =>  [
+            qr/\r\n\+(CME ERROR):[ ]*([^\r\n]*)\r\n/i
+                => \&_network_error
         ],
         # AT command (TTY echo of input)
-        [ qr/^AT([^\r\n]*)\r/i
-            => \&_at_found
+        at          =>  [
+            qr/^AT([^\r\n]*)\r/i
+                => \&_at_found
         ],
         # Modem answers to command
-        [ qr/\r\n(OK|ERROR)\r\n/i
-            =>  \&_ok_error
+        ok_error    =>  [
+            qr/\r\n(OK|ERROR)\r\n/i
+                =>  \&_ok_error
         ],
-    ],
-    # wait_for_cmd_answer:
-    #               The command answers with OK/ERROR, but the real
-    #               result will arrive later out of the net
-    wait_for_cmd_answer =>  [
-        # Ignore status messages
-        [ qr/\r\n(\^(?:BOOT|DSFLOWRPT|MODE|RSSI|SIMST|SRVST)):[ ]*([^\r\n]*)\r\n/i
-            => \&_ignore_state_line
+        # Command successfully done
+        ok          =>  [
+            qr/\r\nOK\r\n/i
+                =>  \&_ok
         ],
-        # Identify +CREG status message
-        # (+CREG modem answer has got two arguments "\d+, \d+"!)
-        [ qr/\r\n(\+CREG):[ ]*(\d)\r\n/i
-            => \&_ignore_state_line
+        # Command failed, probably not correct syntax
+        error       =>  [
+            qr/\r\nERROR\r\n/i
+                =>  \&_error
         ],
-        # Fail states of the modem (network lost, SIM problems, ...)
-        [ qr/\r\n(\+CM[SE] ERROR):[ ]*([^\r\n]*)\r\n/i
-            => \&_network_error
-        ],
-        # The expected result - all state messages have already been
-        # dealt with. Everything that reaches this part has to be the
-        # result of the sent command.
-        # Some more checks of that?
-        [ qr/\r\n(\+[^:]+):[ ]*([^\r\n]*)\r\n/i
-            => \&_expected_answer
-        ],
-        # AT command (TTY echo of input)
-        [ qr/^AT([^\r\n]*)\r/i
-            => \&_at_found
-        ],
-        # OK means that the query was successfully sent into the
-        # net. Carry on!
-        [ qr/\r\n(OK)\r\n/i
-            =>  \&_ok_continue
-        ],
-        # ERROR means that the command wasn't syntactically correct
-        # oder couldn't be understood (wrong encoding?). Stop here,
-        # as no more meaningful results can be expected.
-        [ qr/\r\n(ERROR)\r\n/i
-            =>  \&_ok_error
-        ],
-    ],
 );
 
 
@@ -133,6 +97,8 @@ sub new {
 }
 
 
+########################################################################
+# Getter
 sub error {
     my ($self) = @_;
     
@@ -140,6 +106,8 @@ sub error {
 }
 
 
+########################################################################
+# Getter
 sub match {
     my ($self) = @_;
     
@@ -147,6 +115,8 @@ sub match {
 }
 
 
+########################################################################
+# Getter
 sub description {
     my ($self) = @_;
     
@@ -154,6 +124,7 @@ sub description {
 }
 
 
+########################################################################
 sub open {
     my ($self) = @_;
 
@@ -183,6 +154,7 @@ sub open {
 }
 
 
+########################################################################
 sub close {
     my ($self) = @_;
 
@@ -208,35 +180,10 @@ sub close {
 # Method:   send_command
 # Args:     $cmd        String holding the command to send (usually 
 #                       something like "AT...")
-#           $how_to_react
-#                       String explaining which Expect program to use:
-#                       wait_for_OK
-#                           return immediately in case of OK/ERROR
-#                       wait_for_cmd_answer
-#                           Break in case of ERROR, but wait for 
-#                           the real result after OK
-# Returns:  Hashref    Result of sent command
-#           Key 'ok':   $success if AT command successfully transmitted
-#                       and answer received
-#                       $fail if AT command aborted or not able to send
-#           Key 'match':
-#                       What expect matched,
-#                       'OK'|'ERROR'|'+CME ERROR'|'+CMS ERROR'
-#           Key 'description':
-#                       Error description, OK/ERROR, output of modem
-#                       between AT command and OK, result of USSD query
-#                       after OK, all in accordance to key 'ok' and
-#                       arg $how_to_react
+# Returns:  $fail       Response was ERROR or CM[SE] ERROR
+#           $success    Response was OK
 sub send_command {
-    my ($self, $cmd, $how_to_react)	= @_;
-
-    #if ( ! exists $expect_programs{$how_to_react} ) {
-        # ???
-    #    print STDERR "This should not have happened - ";
-    #    print STDERR "unknown expect program \"$how_to_react\" wanted!\n";
-    #    print STDERR "This is a bug, please report!\n";
-    #    exit $exit_bug;
-    #}
+    my ($self, $cmd)	= @_;
 
     $self->{log}->DEBUG ("Sending command: $cmd");
     $self->{expect}->send("$cmd\015");
@@ -250,44 +197,148 @@ sub send_command {
     ) =
     $self->{expect}->expect (
             $self->{modem_timeout},
-            @{$expect_programs{$how_to_react}},
+            $modem_answer{at},  # Will not be reported due to exp_continue
+            $modem_answer{ok},
+            $modem_answer{error},
+            $modem_answer{cms_error},
+            $modem_answer{cme_error},
     );
 
-    if ( !defined $error ) {
-        my ($first_word, $args ) = $self->{expect}->matchlist();
-        $first_word = uc $first_word;
-        $match_string =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
-        if ( $first_word eq 'ERROR' ) {
-            # OK/ERROR are two of the three "command done" markers.
-            $self->{match} = $match_string;
-            $self->{description} = 'Broken modem command';
-            return $fail;
+    if ( ! defined $error ) {
+        if ( $matched_pattern_pos == 1 ) {
+            # Can't happen, AT exp_continues!
         }
-        elsif ( $first_word eq '+CMS ERROR' ) {
-            # After this error there will be no OK/ERROR anymore
-            my $errormessage = GSMUSSD::NetworkErrors->new()->get_cms_error($args);
-            $self->{match} = $match_string;
-            $self->{description} = "GSM network error: $errormessage ($args)";
-            return $fail;
-        }
-        elsif ( $first_word eq '+CME ERROR' ) {
-            # After this error there will be no OK/ERROR anymore
-            my $errormessage = GSMUSSD::NetworkErrors->new()->get_cme_error($args);
-            $self->{match} = $match_string;
-            $self->{description} = "GSM equipment error: $errormessage ($args)";
-            return $fail;
-        }
-        elsif ( $first_word eq 'OK' ) {
+        elsif ( $matched_pattern_pos == 2 ) {
+            # OK
             # $before_match contains data between AT and OK
             $before_match =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
-            $self->{match}  = $match_string;
+            $match_string =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
+            $self->{match}          = $match_string;
             $self->{description}    = $before_match;
             return $success;
         }
-        elsif ( $first_word =~ /^[\^\+]/ ) {
+        elsif ( $matched_pattern_pos == 3 ) {
+            # ERROR 
+            $self->{match}          = $match_string;
+            $self->{description}    = 'Broken modem command';
+            return $fail;
+        }
+        elsif ( $matched_pattern_pos == 4 ) {
+            # After this error there will be no OK/ERROR anymore
+            my $cms_value       = ($self->{expect}->matchlist())[1];
+            my $errormessage    = GSMUSSD::NetworkErrors->new()->get_cms_error($cms_value);
+            $self->{match}          = $match_string;
+            $self->{description}    = "GSM network error: $errormessage ($cms_value)";
+            return $fail;
+        }
+        elsif ( $matched_pattern_pos == 5 ) {
+            # After this error there will be no OK/ERROR anymore
+            my $cme_value       = ($self->{expect}->matchlist())[1];
+            my $errormessage    = GSMUSSD::NetworkErrors->new()->get_cme_error($cme_value);
+            $self->{match}          = $match_string;
+            $self->{description}    = "GSM equipment error: $errormessage ($cme_value)";
+            return $fail;
+        }
+        # elsif ( $first_word =~ /^[\^\+]/ ) {
+        #    $self->{match}       = $match_string;
+        #    $self->{description} = $match_string;
+        #    return $success;
+        #}
+        else {
             $self->{match}       = $match_string;
-            $self->{description} = $match_string;
+            $self->{description} = "PANIC! Unexpected matched pattern!";
+            return $fail;
+        }
+    }
+    else {
+        # Report Expect error and bail
+        if ($error =~ /^1:/) {
+            # Timeout
+            $self->{match}       = $error;
+            $self->{description} = "No answer for $self->{modem_timeout} seconds!";
+            return $fail;
+        }
+        elsif ($error =~ /^2:/) {
+            # EOF
+            $self->{match}       = $error;
+            $self->{description} = "EOF from modem received - modem unplugged?";
+            return $fail;
+        }
+        elsif ($error =~ /^3:/) {
+            # Spawn id died
+            $self->{match}       = $error;
+            $self->{description} = "PANIC! Can't happen - spawn ID died!";
+            return $fail;
+        }
+        elsif ($error =~ /^4:/) {
+            # Read error
+            $self->{match}       = $error;
+            $self->{description} = "Read error accessing modem: $!";
+            return $fail;
+        }
+        else {
+            $self->{match}       = $error;
+            $self->{description} = "PANIC! Can't happen - unknown Expect error \"$error\"";
+            return $fail;
+        }
+    }
+    $self->{match}       = '';
+    $self->{description} = "PANIC! Can't happen - left send_command() unexpectedly!";
+    return $fail;
+}
+
+
+########################################################################
+# Method:   wait_for
+# Args:     $pattern    Pattern to match in modem output
+# Returns:  $success if pattern matched
+#           $fail if timed out
+sub wait_for {
+    my ($self, $pattern)	= @_;
+
+    $self->{log}->DEBUG ("Waiting for pattern: $pattern");
+
+    my (
+        $matched_pattern_pos,
+        $error,
+        $match_string,
+        $before_match,
+        $after_match
+    ) =
+    $self->{expect}->expect (
+            $self->{modem_timeout},
+            '-re', qr/$pattern/,
+            $modem_answer{error},       # Needed?
+            $modem_answer{cms_error},
+            $modem_answer{cme_error},
+    );
+
+    if ( ! defined $error ) {
+        if ( $matched_pattern_pos == 1 ) {
+            $self->{log}->DEBUG ("Given pattern found");
+            $before_match =~ s/(?:^\s+|\s+$)//g;    # crop whitespace
+            $self->{match}          = $match_string;
+            $self->{description}    = $before_match;
             return $success;
+        }
+        elsif ( $matched_pattern_pos == 2 ) {
+            $self->{match}       = $match_string;
+            $self->{description} = 'Broken modem command';
+            return $fail;
+        }
+        elsif ( $matched_pattern_pos == 3 ) {
+            my $cms_value       = ($self->{expect}->matchlist())[1];
+            my $errormessage    = GSMUSSD::NetworkErrors->new()->get_cms_error($cms_value);
+            $self->{match}      = $match_string;
+            $self->{description} = "GSM network error: $errormessage ($cms_value)";
+            return $fail;
+        }
+        elsif ( $matched_pattern_pos == 4 ) {
+            my $cme_value       = ($self->{expect}->matchlist())[1];
+            my $errormessage    = GSMUSSD::NetworkErrors->new()->get_cme_error($cme_value);
+            $self->{match}      = $match_string;
+            $self->{description} = "GSM equipment error: $errormessage ($cme_value)";
+            return $fail;
         }
         else {
             $self->{match}       = $match_string;
@@ -345,7 +396,7 @@ sub probe {
     my ($self) = @_;
 
     $self->{log}->DEBUG ("Probing modem (AT)");
-    my $probe_ok = $self->send_command ( "AT", 'wait_for_OK' );
+    my $probe_ok = $self->send_command ( "AT" );
     if ( $probe_ok ) {
         $self->{log}->DEBUG ("Modem found (AT->OK)");
         return 1;
@@ -377,7 +428,7 @@ sub echo {
         $self->{log}->DEBUG ("Disabling modem echo ($modem_echo_command)");
     }
 
-    my $echo_ok = $self->send_command ( $modem_echo_command, 'wait_for_OK' );
+    my $echo_ok = $self->send_command ( $modem_echo_command );
     if ( $echo_ok ) { 
         $self->{log}->DEBUG ("$modem_echo_command successful");
         return 1;
@@ -400,9 +451,10 @@ sub pin_needed {
 
     $self->{log}->DEBUG ("Starting SIM state query (AT+CPIN?)");
 
-    my $pin_ok = $self->send_command ( 'AT+CPIN?', 'wait_for_OK' );
+    my $pin_ok = $self->send_command( 'AT+CPIN?' );
     if ( $pin_ok ) {
         $self->{log}->DEBUG ("Got answer for SIM state query");
+
         if ( $self->{match} eq 'OK') {
             if ( $self->{description} =~ m/READY/ ) {
                 $self->{log}->DEBUG ("SIM card is unlocked");
@@ -446,7 +498,7 @@ sub model {
     }
 
     $self->{log}->DEBUG ("Querying modem type");
-    my $model_ok = $self->send_command ( "AT+CGMM", 'wait_for_OK' );
+    my $model_ok = $self->send_command ( "AT+CGMM" );
     if ( $model_ok ) {
         $self->{log}->DEBUG ("Modem type found: ", $self->{description} );
         $self->{model} = $self->{description};
@@ -468,7 +520,7 @@ sub enter_pin {
     my ($self, $pin) = @_;
 
     $self->{log}->DEBUG ("Unlocking SIM using PIN $pin");
-    my $pin_ok = $self->send_command ( "AT+CPIN=$pin", 'wait_for_OK' );
+    my $pin_ok = $self->send_command ( "AT+CPIN=\"$pin\"" );
     if ( $pin_ok ) {
         $self->{log}->DEBUG ("SIM card unlocked: ", $self->{match} );
         return 1;
@@ -495,7 +547,7 @@ sub get_net_registration_state {
     $self->{log}->DEBUG ("Waiting for net registration, max $self->{registration_retries} tries");
     while ( $num_tries <= $self->{registration_retries} ) {
         $self->{log}->DEBUG ("Try: $num_tries");
-        my $reg_ok = $self->send_command ( 'AT+CREG?', 'wait_for_OK' );
+        my $reg_ok = $self->send_command ( 'AT+CREG?' );
         if ( $reg_ok ) {
             $self->{log}->DEBUG ('Net registration query result received, parsing');
             my ($n, $stat) = $self->{description} =~ m/\+CREG:\s+(\d),(\d)/i;
@@ -577,19 +629,6 @@ sub device_accessible {
 
 
 ########################################################################
-# Function: _ignore_state_line
-# Args:     $exp        The Expect object in use
-# Returns:  Nothing, but continues the expect() call
-sub _ignore_state_line {
-    my $exp = shift;
-    my ($state_name, $result) = $exp->matchlist();
-
-    GSMUSSD::Loggit->new()->DEBUG("$state_name: $result, ignored");
-    exp_continue_timeout;
-}
-
-
-########################################################################
 # Function: _network_error
 # Args:     $exp        The Expect object in use
 #           $state_msg_result  Value of state message
@@ -601,32 +640,35 @@ sub _network_error {
     GSMUSSD::Loggit->new()->DEBUG ("Network error $error_msg_type with data \"$error_msg_value\" detected.");
 }
 
-sub _expected_answer {
-    my $exp = shift;
-    my $match = $exp->match();
-    $match =~ s/(?:^\s+|\s+$)//g;
-    GSMUSSD::Loggit->new()->DEBUG ("Expected answer: ", $match);
-}
-
 
 sub _at_found {
-
     my $exp = shift;
 
-    GSMUSSD::Loggit->new()->DEBUG("AT found, -> ",$exp->match() );
+    GSMUSSD::Loggit->new()->DEBUG( 'AT found, -> ', $exp->match() );
     exp_continue_timeout;
 }
 
 
 sub _ok_error {
     my $exp = shift;
-    GSMUSSD::Loggit->new()->DEBUG ("OK/ERROR found: ", ($exp->matchlist())[0] );
+
+    GSMUSSD::Loggit->new()->DEBUG( 'OK/ERROR found: ', ($exp->matchlist())[0] );
 }
 
-sub _ok_continue {
-    GSMUSSD::Loggit->new()->DEBUG ("OK found, continue waiting for result"); 
-    exp_continue;
+
+sub _ok {
+    my $exp = shift;
+
+    GSMUSSD::Loggit->new()->DEBUG( 'OK found.' );
 }
+
+
+sub _error {
+    my $exp = shift;
+
+    GSMUSSD::Loggit->new()->DEBUG( 'ERROR found.' );
+}
+
 
 ########################################################################
 __END__
