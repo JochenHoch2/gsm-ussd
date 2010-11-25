@@ -182,6 +182,7 @@ sub query {
             }
             elsif ( $response_type == 1 ) {
                 $self->{log}->DEBUG ("USSD response type: Further action required (1)");
+                $self->{session} = 1;
                 print STDERR "USSD session open, to cancel use \"gsm-ussd -c\".\n";
             }
             elsif ( $response_type == 2 ) {
