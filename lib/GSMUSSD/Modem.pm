@@ -543,6 +543,7 @@ sub enter_pin {
     my $pin_ok = $self->send_command ( "AT+CPIN=\"$pin\"" );
     if ( $pin_ok ) {
         $self->{log}->DEBUG ("SIM card unlocked: ", $self->{match} );
+        sleep $wait_time_between_net_checks;
         return 1;
     }
     else {
