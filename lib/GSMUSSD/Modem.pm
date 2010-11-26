@@ -588,45 +588,43 @@ sub get_net_registration_state {
             $self->{log}->DEBUG ('Net registration query result received, parsing');
             my ($n, $stat) = $self->{description} =~ m/\+CREG:\s+(\d),(\d)/i;
             if ( ! defined $n || ! defined $stat) {
-                $last_state_message = 'Cannot parse +CREG answer: ' . $self->{description}; 
-                $self->{log}->DEBUG ( $last_state_message );
-                return ( 0, $last_state_message );
+                $self->{error} = 'Cannot parse +CREG answer: ' . $self->{description}; 
+                $self->{log}->DEBUG ( $self->error() );
+                return $fail;
             }
             if ( $stat == 0 ) {
-                $last_state_message = 'Not registered, MT not searching a new operator to register to';
-                $self->{log}->DEBUG ( $last_state_message );
-                return ( 0, $last_state_message );
+                $self->{error} = 'Not registered, MT not searching a new operator to register to';
+                $self->{log}->DEBUG ( $self->error() );
+                return $fail;
             }
             elsif ( $stat == 1 ) {
-                $last_state_message = 'Registered, home network';
-                $self->{log}->DEBUG ( $last_state_message );
+                $self->{log}->DEBUG ( 'Registered, home network' );
                 if ( $num_tries != 1 ) {
                     $self->{log}->DEBUG ( 'Sleeping one more time for settling in');
                     sleep $wait_time_between_net_checks;
                 }
-                return ( 1, $last_state_message );
+                return $success;
             }
             elsif ( $stat == 2 ) {
                 $last_state_message = 'Not registered, currently searching new operator to register to';
                 $self->{log}->DEBUG ( $last_state_message );
             }
             elsif ( $stat == 3) {
-                $last_state_message = 'Registration denied'; 
-                $self->{log}->DEBUG ( $last_state_message );
-                return ( 0, $last_state_message );
+                $self->{error} = 'Registration denied'; 
+                $self->{log}->DEBUG ( $self->error() );
+                return $fail;
             }
             elsif ( $stat == 4) {
                 $last_state_message = 'Registration state unknown';
                 $self->{log}->DEBUG ( $last_state_message );
             }
             elsif ( $stat == 5 ) {
-                $last_state_message = 'Registered, roaming';
-                $self->{log}->DEBUG ( $last_state_message );
+                $self->{log}->DEBUG ( 'Registered, roaming' );
                 if ( $num_tries != 1 ) {
                     $self->{log}->DEBUG ( 'Sleeping one more time for settling in');
                     sleep $wait_time_between_net_checks;
                 }
-                return ( 1, $last_state_message );
+                return $success;
             }
             else {
                 $last_state_message = "Cannot understand net reg state code $stat";
@@ -642,12 +640,10 @@ sub get_net_registration_state {
         sleep $wait_time_between_net_checks;
         ++ $num_tries;
     }
-    return ( 0, "No net registration in $self->{registration_retries} tries found, last result:\n$last_state_message" );
+    $self->{error} = "No net registration in $self->{registration_retries} tries found, last result:\n$last_state_message";
+    return $fail;
 }
 
-########################################################################
-########################################################################
-########################################################################
 
 ########################################################################
 # Method:   device_accessible

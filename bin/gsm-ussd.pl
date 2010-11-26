@@ -149,9 +149,11 @@ if ( $modem->pin_needed() ) {
     }
 }
 
-my ( $net_is_available, $reason)  = $modem->get_net_registration_state();
+my $net_is_available  = $modem->get_net_registration_state();
 if ( ! $net_is_available ) {
-    print STDERR "ERROR: Sorry, no network seems to be available:\n$reason\n";
+    # print STDERR "ERROR: Sorry, no network seems to be available:\n$reason\n";
+    print STDERR "ERROR: Sorry, no network seems to be available:\n";
+    print STDERR $modem->error(), $/;
     exit $exit_nonet;
 }
 
