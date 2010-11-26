@@ -254,6 +254,18 @@ GSMUSSD::NetworkErrors
 
 =head1 DESCRIPTION
 
+=head1 METHODS
+
+=over
+
+=item B<new>
+
+=item B<get_cms_error>
+
+=item B<get_cme_error>
+
+=back
+
 =head1 AUTHOR
 
 Jochen Gruse, L<mailto:jochen@zum-quadrat.de>

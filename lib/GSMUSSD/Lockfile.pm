@@ -171,6 +171,28 @@ GSMUSSD::Lockfile
 
 =head1 DESCRIPTION
 
+=head1 METHODS
+
+=over
+
+=item B<new>
+
+=item B<DESTROY>
+
+=item B<device>
+
+=item B<lockfile>
+
+=item B<is_locked>
+
+=item B<lock>
+
+=item B<release>
+
+=item B<_get_lockfile_name>
+
+=back
+
 =head1 AUTHOR
 
 Jochen Gruse, L<mailto:jochen@zum-quadrat.de>

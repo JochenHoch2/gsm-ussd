@@ -32,6 +32,7 @@ sub new {
 	return $self;
 }
 
+
 ########################################################################
 # Method:   dcs
 # Type:     Instance
@@ -135,6 +136,24 @@ GSMUSSD::DCS
  }
 
 =head1 DESCRIPTION
+
+=head1 METHODS
+
+=over
+
+=item B<new>
+
+=item B<dcs>
+
+=item B<is_default_alphabet>
+
+=item B<is_ucs2>
+
+=item B<is_8bit>
+
+=item B<_bit_is_set>
+
+=back
 
 =head1 AUTHOR
 

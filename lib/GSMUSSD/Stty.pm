@@ -36,7 +36,7 @@ sub new {
 ########################################################################
 # Method:   save
 # Args:     None
-# Returns:  Nothing
+# Returns:  $self
 sub save {
     my ($self) = @_;
     
@@ -72,7 +72,7 @@ sub save {
 ########################################################################
 # Method:   restore
 # Args:     None
-# Returns:  Nothing
+# Returns:  $self
 sub restore {
     my ($self) = @_;
     
@@ -110,7 +110,7 @@ sub restore {
 ########################################################################
 # Method:   set_raw_noecho
 # Args:     None
-# Returns:  
+# Returns:  $self
 sub set_raw_noecho {
     my ($self) = @_;
     
@@ -129,7 +129,7 @@ sub set_raw_noecho {
     my $result = $termios->setattr(fileno($self->{filehandle}));
     if ( ! defined $result ) {
         $self->{log}->DEBUG ('Could not set raw/noecho');
-        return undef;
+        return $self;
     }
     return $self;
 }
@@ -153,6 +153,20 @@ GSMUSSD::Stty
  $stty->restore();
 
 =head1 DESCRIPTION
+
+=head1 METHODS
+
+=over
+
+=item B<new>
+
+=item B<save>
+
+=item B<restore>
+
+=item B<set_raw_noecho>
+
+=back
 
 =head1 AUTHOR
 

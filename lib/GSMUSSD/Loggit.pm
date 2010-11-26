@@ -78,6 +78,14 @@ GSMUSSD::Loggit
 
 =head1 DESCRIPTION
 
+=head1 METHODS
+
+=item B<new>
+
+=item B<really_log>
+
+=item B<DEBUG>
+
 =head1 AUTHOR
 
 Jochen Gruse, L<mailto:jochen@zum-quadrat.de>

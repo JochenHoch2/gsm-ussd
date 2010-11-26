@@ -2,6 +2,9 @@
 ########################################################################
 # vim: set expandtab sw=4 ts=4 ai nu: 
 ########################################################################
+# Module:           GSMUSSD::Modem
+# Documentation:    POD at __END__
+########################################################################
 
 package GSMUSSD::Modem;
 
@@ -46,12 +49,12 @@ my %modem_answer = (
         ],
         ok          =>  [
             qr/\r\nOK\r\n/i
-                =>  \&_ok
+                =>  \&_ok_found
         ],
         # Command failed, probably not correct syntax
         error       =>  [
             qr/\r\nERROR\r\n/i
-                =>  \&_error
+                =>  \&_error_found
         ],
 );
 
@@ -92,7 +95,10 @@ sub new {
 
 
 ########################################################################
-# Getter
+# Method:   error
+# Args:     None.
+# Returns:  The error attribute, set to the last error the modem
+#           encountered.
 sub error {
     my ($self) = @_;
     
@@ -101,7 +107,9 @@ sub error {
 
 
 ########################################################################
-# Getter
+# Method:   match
+# Args:     None.
+# Returns:  The last match by expect in the modem answers.
 sub match {
     my ($self) = @_;
     
@@ -110,7 +118,10 @@ sub match {
 
 
 ########################################################################
-# Getter
+# Method:   description
+# Args:     None.
+# Returns:  Description of the last modem message, w.g. the real message
+#           between AT and OK
 sub description {
     my ($self) = @_;
     
@@ -119,19 +130,24 @@ sub description {
 
 
 ########################################################################
+# Method:   open
+# Does:     Opens the modem port
+# Args:     None.
+# Result:   $success    - Modem opened
+#           $fail       - Modem could not be opened
 sub open {
     my ($self) = @_;
 
     $self->{log}->DEBUG ('Locking device');
     if ( ! $self->{lock}->lock() ) {
         $self->{error} = "Can't lock $self->{device}";
-        return 0;
+        return $fail;
     }
 
     $self->{log}->DEBUG ('Opening device');
     if ( ! open $self->{device_handle}, '+<:raw', $self->{device} ) {
         $self->{error} = "Modem port \"$self->{device}\" seems in order, but cannot open it anyway:\n$!\n";
-        return 0;
+        return $fail;
     }
 
     $self->{log}->DEBUG ('Set stty settings for device');
@@ -144,12 +160,13 @@ sub open {
     if ( defined $self->{modem_chatlog} ) {
         $self->{expect}->log_file($self->{modem_chatlog}, 'w');
     }
-    return 1;
+    return $success;
 }
 
 
 ########################################################################
 # Method:   close
+# Does:     Closes the modem
 # Args:     None.
 # Returns:  None.
 sub close {
@@ -236,11 +253,6 @@ sub send_command {
             $self->{description}    = "GSM equipment error: $errormessage ($cme_value)";
             return $fail;
         }
-        # elsif ( $first_word =~ /^[\^\+]/ ) {
-        #    $self->{match}       = $match_string;
-        #    $self->{description} = $match_string;
-        #    return $success;
-        #}
         else {
             $self->{match}       = $match_string;
             $self->{description} = "PANIC! Unexpected matched pattern!";
@@ -384,8 +396,8 @@ sub wait_for {
 ########################################################################
 # Method:   probe
 # Args:     None
-# Returns:  0   No modem found 
-#           1   Modem found
+# Returns:  $fail       - No modem found 
+#           $success    - Modem found
 #
 # "Finding a modem" is hereby defined as getting a reaction of "OK"
 # to writing "AT" into the file handle in question.
@@ -396,12 +408,12 @@ sub probe {
     my $probe_ok = $self->send_command ( "AT" );
     if ( $probe_ok ) {
         $self->{log}->DEBUG ("Modem found (AT->OK)");
-        return 1;
+        return $success;
     }
     else {
         $self->{log}->DEBUG ("No modem found, error: $self->{description}");
         $self->{error} = $self->{description};
-        return 0;
+        return $fail;
     }
 }
 
@@ -451,12 +463,12 @@ sub echo {
     my $echo_ok = $self->send_command ( $modem_echo_command );
     if ( $echo_ok ) { 
         $self->{log}->DEBUG ("$modem_echo_command successful");
-        return 1;
+        return $success;
     }   
     else {
         $self->{log}->DEBUG ("$modem_echo_command failed, error: $self->{description}");
         $self->{error} = $self->{description};
-        return 0;
+        return $fail;
     }   
 }
 
@@ -534,8 +546,8 @@ sub model {
 ########################################################################
 # Method:   enter_pin
 # Args:     The PIN to unlock the SIM card
-# Returns:  0   Unlocking the SIM card failed
-#           1   SIM is now unlocked
+# Returns:  $fail       - Unlocking the SIM card failed
+#           $success    - SIM is now unlocked
 sub enter_pin {
     my ($self, $pin) = @_;
 
@@ -544,12 +556,12 @@ sub enter_pin {
     if ( $pin_ok ) {
         $self->{log}->DEBUG ("SIM card unlocked: ", $self->{match} );
         sleep $wait_time_between_net_checks;
-        return 1;
+        return $success;
     }
     else {
         $self->{log}->DEBUG ("SIM card still locked, error: ", $self->{description});
         $self->{error} = $self->{description};
-        return 0;
+        return $fail;
     }
 }
 
@@ -557,8 +569,8 @@ sub enter_pin {
 ########################################################################
 # Method:   get_net_registration_state
 # Args:     None
-# Returns:  0 - No net available
-#           1 - Modem is registered in a net
+# Returns:  $fail       - No net available
+#           $success    - Modem is registered in a net
 sub get_net_registration_state {
     my ($self)              = @_;
 
@@ -566,9 +578,12 @@ sub get_net_registration_state {
     my $last_state_message  = '';
 
     $self->{log}->DEBUG ("Waiting for net registration, max $self->{registration_retries} tries");
+
     while ( $num_tries <= $self->{registration_retries} ) {
+
         $self->{log}->DEBUG ("Try: $num_tries");
         my $reg_ok = $self->send_command ( 'AT+CREG?' );
+
         if ( $reg_ok ) {
             $self->{log}->DEBUG ('Net registration query result received, parsing');
             my ($n, $stat) = $self->{description} =~ m/\+CREG:\s+(\d),(\d)/i;
@@ -637,15 +652,17 @@ sub get_net_registration_state {
 ########################################################################
 # Method:   device_accessible
 # Args:     None
-# Returns:  
+# Returns:  $success    - Device exists, is a char dev, readable &
+#                         writable
+#           $fail       - At least one of the above checks failed
 sub device_accessible {
     my ($self) = @_;
 
     my $dev = $self->{device};
     if ( -e $dev && -c $dev && -r $dev && -w $dev ) {
-        return 1;
+        return $success;
     }
-    return 0;
+    return $fail;
 }
 
 
@@ -654,6 +671,8 @@ sub device_accessible {
 # Args:     $exp        The Expect object in use
 #           $state_msg_result  Value of state message
 # Returns:  Nothing, will end the expect() call
+#
+# Please note that this is a *function*, not a *method*!
 sub _network_error {
     my $exp = shift;
     my ($error_msg_type,$error_msg_value) = $exp->matchlist();
@@ -662,6 +681,13 @@ sub _network_error {
 }
 
 
+########################################################################
+# Function: _at_found
+# Args:     $exp        The Expect object in use
+#           $state_msg_result  Value of state message
+# Returns:  Nothing, but expect() will continue!
+#
+# Please note that this is a *function*, not a *method*!
 sub _at_found {
     my $exp = shift;
 
@@ -670,14 +696,28 @@ sub _at_found {
 }
 
 
-sub _ok {
+########################################################################
+# Function: _ok_found
+# Args:     $exp        The Expect object in use
+#           $state_msg_result  Value of state message
+# Returns:  Nothing, will end the expect() call
+#
+# Please note that this is a *function*, not a *method*!
+sub _ok_found {
     my $exp = shift;
 
     GSMUSSD::Loggit->new()->DEBUG( 'OK found.' );
 }
 
 
-sub _error {
+########################################################################
+# Function: _error_found
+# Args:     $exp        The Expect object in use
+#           $state_msg_result  Value of state message
+# Returns:  Nothing, will end the expect() call
+#
+# Please note that this is a *function*, not a *method*!
+sub _error_found {
     my $exp = shift;
 
     GSMUSSD::Loggit->new()->DEBUG( 'ERROR found.' );

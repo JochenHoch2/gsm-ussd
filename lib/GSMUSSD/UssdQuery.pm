@@ -11,7 +11,7 @@ package GSMUSSD::UssdQuery;
 use strict;
 use warnings;
 
-use Encode qw(encode decode);
+use Encode          qw/encode decode/;
 use Carp;
 use Scalar::Util    qw/blessed/;
 
@@ -84,8 +84,8 @@ sub new {
 ########################################################################
 # Method:   is_in_session
 # Args:     None.
-# Returns:  0   - USSD session opened
-#           1   - No USSD session open
+# Returns:  $success   - USSD session opened
+#           $fail      - No USSD session open
 sub is_in_session {
     my ($self) = @_;
 
@@ -96,7 +96,7 @@ sub is_in_session {
 ########################################################################
 # Method:   answer
 # Args:     None.
-# Returns:  String containing the last meaningfull modem answer.
+# Returns:  String containing the last meaningful modem answer.
 sub answer {
     my ($self) = @_;
 
@@ -123,8 +123,8 @@ sub modem_needs_pdu_format {
 ########################################################################
 # Method:   is_valid_ussd_query
 # Args:     $query - The USSD query to check
-# Returns:  0   -   Query contains illegal characters
-#           1   -   Query is legal
+# Returns:  $success    - Query contains illegal characters
+#           $fail       - Query is legal
 sub is_valid_ussd_query {
     my ( $self, $query ) = @_;
 
@@ -140,7 +140,8 @@ sub is_valid_ussd_query {
 ########################################################################
 # Method:   query
 # Args:     $query      The USSD query to send, e.g. '*100#'
-# Returns:  
+# Returns:  $success    - Got answer to query
+#           $fail       - Something went wrong
 sub query {
     my ( $self, $query ) = @_;
 
@@ -257,7 +258,7 @@ sub cancel_ussd_session {
 
 
 ########################################################################
-# Function: _interpret_ussd_data
+# Method:   _interpret_ussd_data
 # Args:     $response   -   The USSD string response
 #           $encoding   -   The USSD encoding (dcs)
 # Returns:  String containing the USSD response in clear text
@@ -345,6 +346,30 @@ GSMUSSD::UssdQuery
  my $answer = $code->decode_7bit ($e160_ussd_response);
 
 =head1 DESCRIPTION
+
+=head1 METHODS
+
+=over
+
+=item B<new>
+
+=item B<is_in_session>
+
+=item B<answer>
+
+=item B<modem_needs_pdu_format>
+
+=item B<is_valid_ussd_query>
+
+=item B<query>
+
+=item B<cancel_ussd_session>
+
+=item B<_interpret_ussd_data>
+
+=item B<ussd_query_cmd>
+
+=back
 
 =head1 AUTHOR
 

@@ -140,6 +140,24 @@ GSMUSSD::Code
 
 =head1 DESCRIPTION
 
+=head1 METHODS
+
+=over 
+
+=item B<new>
+
+=item B<decode_8bit>
+
+=item B<encode_8bit>
+
+=item B<decode_7bit>
+
+=item B<encode_7bit>
+
+=item B<_repack_bits>
+
+=back
+
 =head1 AUTHOR
 
 Jochen Gruse, L<mailto:jochen@zum-quadrat.de>
