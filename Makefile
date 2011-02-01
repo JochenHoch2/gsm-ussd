@@ -9,6 +9,7 @@ PREFIX		= /usr/local
 INSTALL_PATH	= $(PREFIX)
 BIN_PATH	= $(INSTALL_PATH)/bin
 MAN_PATH	= $(INSTALL_PATH)/share/man
+LIB_PATH	= $(INSTALL_PATH)/lib/gsm-ussd
 
 # The documentation in POD and *roff format
 PODS		= docs/gsm-ussd.en.pod docs/gsm-ussd.de.pod docs/xussd.en.pod docs/xussd.de.pod
@@ -21,8 +22,13 @@ all:		doc
 
 install:	all
 	install -d $(BIN_PATH)
-	install bin/gsm-ussd.pl $(BIN_PATH)/gsm-ussd
-	install bin/xussd.sh $(BIN_PATH)/xussd
+	install -d $(LIB_PATH)/bin
+	install -d $(LIB_PATH)/lib/GSMUSSD
+	install lib/GSMUSSD/* $(LIB_PATH)/lib/GSMUSSD
+	install bin/gsm-ussd.pl $(LIB_PATH)/bin
+	install bin/xussd.sh $(LIB_PATH)/bin
+	cd $(BIN_PATH) && ln -sf ../lib/gsm-ussd/bin/gsm-ussd.pl gsm-ussd
+	cd $(BIN_PATH) && ln -sf ../lib/gsm-ussd/bin/xussd.sh xussd
 
 doc:	$(MANS)
 
