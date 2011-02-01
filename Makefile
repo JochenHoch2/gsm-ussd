@@ -33,6 +33,8 @@ install:	all
 doc:	$(MANS)
 
 install-doc:	doc
+	install -d $(MAN_PATH)/man1
+	install -d $(MAN_PATH)/de/man1
 	install docs/gsm-ussd.en.man $(MAN_PATH)/man1/gsm-ussd.1
 	install docs/gsm-ussd.de.man $(MAN_PATH)/de/man1/gsm-ussd.1
 	install docs/xussd.en.man $(MAN_PATH)/man1/xussd.1
