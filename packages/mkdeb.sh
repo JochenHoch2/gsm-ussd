@@ -6,10 +6,10 @@
 #		project, builds the .deb file and cleans up.
 #		It is meant to be used to fulfill the "deb" target of
 #		the top level Makefile.
-#		It expects all files of the gsm-ussd project to have 
-#		been built.
 # Author:	Jochen Gruse <jochen@zum-quadrat.de>
 ########################################################################
+
+trap '[ $CLEANUP -eq 1 ] && clean_up ; exit 0;' 0
 
 # Just for development & debugging
 CLEANUP=1
@@ -33,13 +33,13 @@ DOC_PATH=$BASE_PATH/usr/share/doc/gsm-ussd
 ########################################################################
 function create_installation_directories {
 	(
-		set -e
+		set -ex
 		mkdir -p $BIN_PATH
 		mkdir -p $MAN_EN_PATH
 		mkdir -p $MAN_DE_PATH
 		mkdir -p $DEBIAN_PATH
 		mkdir -p $DOC_PATH
-	) 2>/dev/null
+	)
 	if [[ $? -ne 0 ]] ; then
 		echo "Could not create installation directories - abort" >&2
 		exit 1
@@ -59,21 +59,30 @@ function create_md5sums {
 
 
 ########################################################################
+# Install gsm-ussd
+########################################################################
+function install_gsm-ussd {
+	(
+		set -ex
+
+		cd ..  && \
+		make PREFIX=packages/$BASE_PATH/usr install install-doc
+	)
+	if [ $? -ne 0 ] ; then
+		echo "Could not install gsm-ussd - abort" >&2
+		exit 1
+	fi
+	return 0
+}
+
+
+########################################################################
 # Copy all needed files of gsm-ussd into the directory tree for .deb
 ########################################################################
 function copy_gsm-ussd_files {
 	(
-		set -e
+		set -ex
 
-		# Binaries
-		cp ../bin/gsm-ussd.pl $BIN_PATH/gsm-ussd
-		cp ../bin/xussd.sh $BIN_PATH/xussd
-
-		# Man pages
-		cp ../docs/gsm-ussd.en.man $MAN_EN_PATH/gsm-ussd.1
-		cp ../docs/gsm-ussd.de.man $MAN_DE_PATH/gsm-ussd.1
-		cp ../docs/xussd.en.man $MAN_EN_PATH/xussd.1
-		cp ../docs/xussd.de.man $MAN_DE_PATH/xussd.1
 		gzip --best $MAN_EN_PATH/gsm-ussd.1
 		gzip --best $MAN_DE_PATH/gsm-ussd.1
 		gzip --best $MAN_EN_PATH/xussd.1
@@ -94,7 +103,7 @@ function copy_gsm-ussd_files {
 
 		  * This file will not be updated
 		    Please see normal changelog file for updates,
-		    as Debian maintainer and upstream author are identical.
+		    as package maintainer and upstream author are identical.
 
 		 -- Jochen Gruse <jochen@zum-quadrat.de>  Wed, 21 Apr 2010 22:59:36 +0200
 
@@ -105,7 +114,7 @@ function copy_gsm-ussd_files {
 		# Debian control and support files
 		sed -e 's/@@VERSION@@/'$VERSION'/' control.tmpl > $DEBIAN_PATH/control
 		create_md5sums
-	) 2>/dev/null
+	) 
 	if [ $? -ne 0 ] ; then
 		echo "Could not copy installation files - abort" >&2
 		exit 1
@@ -136,10 +145,9 @@ function clean_up {
 
 create_installation_directories
 
+install_gsm-ussd
+
 copy_gsm-ussd_files
 
 build_deb_package
 
-[ $CLEANUP -eq 1 ] && clean_up
-
-exit 0
