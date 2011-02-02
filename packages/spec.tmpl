@@ -17,8 +17,8 @@ Source: %{name}_%{version}.tar.gz
 # smart enough to figure out that this a perl script and 
 # will need the modules it "use"s. Impressive!
 # Requires: perl >= 5.8, perl-Expect
-BuildRoot: %{_tmppath}/%{name}-%{version}-build
 BuildArch: noarch 
+BuildRoot: %{_tmppath}/%{name}-%{version}-build
 
 %description
 gsm-ussd is a script to send USSD (Unstructured Supplementary
@@ -40,9 +40,7 @@ Jochen Gruse <jochen@zum-quadrat.de>
 %build
 
 %install
-install -d -m 755 $RPM_BUILD_ROOT%{_mandir}/man1
-install -d -m 755 $RPM_BUILD_ROOT%{_mandir}/de/man1
-make BIN_PATH=$RPM_BUILD_ROOT%{_bindir} MAN_PATH=$RPM_BUILD_ROOT%{_mandir} install install-doc
+make PREFIX=$RPM_BUILD_ROOT/usr install install-doc
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -52,4 +50,6 @@ rm -rf $RPM_BUILD_ROOT
 %doc INSTALL README LICENSE TODO docs/README.* docs/story.txt docs/ussd-sessions.txt
 %doc %{_mandir}/man1/*
 %doc %{_mandir}/de/man1/*
-%{_bindir}/*
+/usr/lib/gsm-ussd/*
+/usr/bin/gsm-ussd
+/usr/bin/xussd
