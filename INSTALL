@@ -37,6 +37,12 @@ Tested Hardware
 	    WebSessions USB-Stick K3565 
   Thanks to Ulrichi (reported by mail)!
 
+* Huawei E173 (USB ID ????, /dev/ttyUSB2)
+  Thanks to Sandeep from India (reported by mail)!
+
+* Huawei E1820 (USB ID ????, /dev/ttyUSB2)
+  Thanks to Graham Inggs from South Africa (reported by mail)!
+
 * Ericsson-Modem of the Ideapad S10 3G (USB ID 0bdb:1900, /dev/ttyACM1)
   Thanks to Ulf (yeti at debianforum.de)!
 
