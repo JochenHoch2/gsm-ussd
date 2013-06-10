@@ -132,7 +132,7 @@ sub is_valid_ussd_query {
 
     # The first RA checks for a "standard" USSD
     # The second allows simple numbers as used by USSD sessions
-    if ( $query =~ m/^\*[0-9*]+#$/ || $query =~ m/^\d+$/) {
+    if ( $query =~ m/^\*[0-9\*\#]*[0-9]+#$/ || $query =~ m/^\d+$/) {
         return 1;
     }
     return 0;
