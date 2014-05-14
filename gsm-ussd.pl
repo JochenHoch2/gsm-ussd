@@ -40,7 +40,7 @@ use Expect;     # External dependency
 # Init
 ########################################################################
 
-our $VERSION            = '0.3.2';          # Our version
+our $VERSION            = '0.3.3';          # Our version
 my $modemport           = '/dev/ttyUSB1';   # AT port of a Huawei E160 modem
 my $modem_lockfile      = undef;            # The modem lockfile (e.g. /var/run/LCK..ttyUSB1)
 my $modem_fh            = undef;
