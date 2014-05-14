@@ -1001,7 +1001,6 @@ sub do_ussd_query {
         elsif ( $response_type == 2 ) {
             my $msg = "USSD response type: USSD terminated by network (2)";
             DEBUG ($msg);
-            return { ok => $fail, msg => $msg };
         }
         elsif ( $response_type == 3 ) {
             my $msg = ("USSD response type: Other local client has responded (3)");
